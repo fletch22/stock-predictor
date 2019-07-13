@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 from services.StockService import StockService
-from datetime import datetime, timedelta
+from tests.Chris import Chris
+from tests.Matthew import Matthew
 
 
 class TestStockService(TestCase):
@@ -11,7 +13,7 @@ class TestStockService(TestCase):
     stock_service = StockService()
     symbol = "goog"
     start_date = datetime.now()
-    end_date = start_date + timedelta(days = 1)
+    end_date = start_date + timedelta(days=1)
 
     # Act
     filename = stock_service.get_cache_filename(symbol, start_date, end_date)

@@ -19,9 +19,9 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+
 import sonnet as snt
 import tensorflow as tf
-
 import util
 
 # Ensure values are greater than epsilon to avoid numerical instability.
@@ -150,7 +150,7 @@ class TemporalLinkage(snt.RNNCore):
     precedence_weights = self._precedence_weights(prev_state.precedence_weights,
                                                   write_weights)
     return TemporalLinkageState(
-        link=link, precedence_weights=precedence_weights)
+      link=link, precedence_weights=precedence_weights)
 
   def directional_read_weights(self, link, prev_read_weights, forward):
     """Calculates the forward or the backward read weights.
@@ -212,10 +212,10 @@ class TemporalLinkage(snt.RNNCore):
       # Return the link with the diagonal set to zero, to remove self-looping
       # edges.
       return tf.matrix_set_diag(
-          link,
-          tf.zeros(
-              [batch_size, self._num_writes, self._memory_size],
-              dtype=link.dtype))
+        link,
+        tf.zeros(
+          [batch_size, self._num_writes, self._memory_size],
+          dtype=link.dtype))
 
   def _precedence_weights(self, prev_precedence_weights, write_weights):
     """Calculates the new precedence weights given the current write weights.
@@ -243,10 +243,10 @@ class TemporalLinkage(snt.RNNCore):
   def state_size(self):
     """Returns a `TemporalLinkageState` tuple of the state tensors' shapes."""
     return TemporalLinkageState(
-        link=tf.TensorShape(
-            [self._num_writes, self._memory_size, self._memory_size]),
-        precedence_weights=tf.TensorShape([self._num_writes,
-                                           self._memory_size]),)
+      link=tf.TensorShape(
+        [self._num_writes, self._memory_size, self._memory_size]),
+      precedence_weights=tf.TensorShape([self._num_writes,
+                                         self._memory_size]), )
 
 
 class Freeness(snt.RNNCore):
@@ -394,7 +394,7 @@ class Freeness(snt.RNNCore):
 
       nonusage = 1 - usage
       sorted_nonusage, indices = tf.nn.top_k(
-          nonusage, k=self._memory_size, name='sort')
+        nonusage, k=self._memory_size, name='sort')
       sorted_usage = 1 - sorted_nonusage
       prod_sorted_usage = tf.cumprod(sorted_usage, axis=1, exclusive=True)
       sorted_allocation = sorted_nonusage * prod_sorted_usage

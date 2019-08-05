@@ -257,3 +257,30 @@ Encoder-Decoder Feed-forward + LSTM Recurrent Neural Network
 Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
 
 <img src="output/stack-ensemble.png" width="70%" align="">
+
+## Building in Conda
+
+    Command Line:
+    
+        activate base
+        pip install -r requirements.txt
+        
+        Note: if you cannot install a dep becuase of an existing distutils dep, use '--ignore-installed' flag.
+
+## Running A Test from the Command Line
+
+    python -m pytest -s ./tests/utils/TestDateUtils.py::TestDateUtils::test_get_random_date
+    
+## Running PySpark
+    
+    To Set Up Spark:
+        
+        http://deelesh.github.io/pyspark-windows.html
+        
+        Note: Add %HADOOP%/bin to your PATH. This step is missing from the above instructions.
+
+    At the command line:
+    
+        activate base
+        
+        %SPARK_HOME%/bin/pyspark

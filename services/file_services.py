@@ -1,3 +1,5 @@
+import ctypes
+from ctypes import windll
 from datetime import datetime
 from os import walk as walker
 import os
@@ -50,3 +52,17 @@ def zip_dir(dir_to_zip, output_path):
     myzip.close()
 
   return output_path
+
+def get_windows_drive_volume_label(drive_letter: str):
+  volumeNameBuffer = ctypes.create_unicode_buffer(1024)
+  fileSystemNameBuffer = ctypes.create_unicode_buffer(1024)
+
+  windll.kernel32.GetVolumeInformationW(
+    ctypes.c_wchar_p(f"{drive_letter}:\\"),
+    volumeNameBuffer,
+    ctypes.sizeof(volumeNameBuffer),
+    fileSystemNameBuffer,
+    ctypes.sizeof(fileSystemNameBuffer)
+  )
+
+  return volumeNameBuffer.value

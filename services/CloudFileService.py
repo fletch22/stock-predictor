@@ -1,8 +1,15 @@
+import os
+import time
+
+import findspark
 from google.cloud import storage
 from google.oauth2 import service_account
+from ipython_genutils.py3compat import xrange
+from pyspark import SparkContext, SparkFiles
 
 import config
 from config import logger_factory
+from services import file_services
 
 logger = logger_factory.create_logger(__name__)
 
@@ -32,3 +39,87 @@ class CloudFileService():
   def file_exists_in_uploads(self, file_path):
     blob = self._get_upload_bucket().blob(file_path)
     return blob.exists()
+
+  def list_filenames(self, path_dir_after_bucket_name: str):
+    blobs = self.client.list_blobs(self._get_upload_bucket(), prefix=path_dir_after_bucket_name)
+
+    return [b.name for b in blobs]
+
+  def upload_multi(self, source_dir_path: str, destination_cloud_folder_path: str, max_files: int=None):
+    file_paths = file_services.walk(source_dir_path)
+
+    logger.info(f"Will attempt to upload {len(file_paths)} files.")
+
+    upload_file_infos = []
+    for ndx, f in enumerate(file_paths):
+      category = os.path.basename(os.path.dirname(f))
+      basename = os.path.basename(f)
+      blob_name = f"{destination_cloud_folder_path}/{category}_{basename}"
+
+      logger.info(f"bname: {blob_name}")
+
+      upload_file_infos.append({
+        "source_file_path": f,
+        "destination_blob_name": blob_name
+      })
+
+      if max_files is not None and ndx >= max_files:
+        logger.info(f"Reached user set limit of {max_files} files.")
+        break
+
+    upload_needed = self.filter_out_unneeded(upload_file_infos, destination_cloud_folder_path)
+
+    num_already_uploaded = len(upload_file_infos) - len(upload_needed)
+    if num_already_uploaded > 0:
+      logger.info(f"Found {num_already_uploaded} files already uploaded. Skipping those.")
+
+    if len(upload_needed) > 0:
+      get_spark_uploaders(upload_needed)
+
+  def filter_out_unneeded(self, upload_file_infos, destination_cloud_folder_path):
+    file_already_uploaded = self.list_filenames(destination_cloud_folder_path)
+
+    return [ufi for ufi in upload_file_infos if ufi["destination_blob_name"] not in file_already_uploaded]
+
+def get_spark_uploaders(upload_file_infos):
+  findspark.init()
+  sc = SparkContext.getOrCreate()
+  sc.setLogLevel("INFO")
+  print(sc._jsc.sc().uiWebUrl().get())
+
+  sublist_size = (len(upload_file_infos) // 24) + 1
+  logger.info(f"Sublist size: {sublist_size}")
+  chunks = [upload_file_infos[x:x + sublist_size] for x in xrange(0, len(upload_file_infos), sublist_size)]
+  rdd = sc.parallelize(chunks)
+
+  rdd.foreach(spark_gcs_upload)
+
+  sc.stop()
+
+def spark_gcs_upload(upload_file_infos):
+  cloud_file_services = CloudFileService()
+
+  for file_info in upload_file_infos:
+    file_path = SparkFiles.get(file_info["source_file_path"])
+    destination_blob = file_info["destination_blob_name"]
+
+    upload_file_retry(cloud_file_services, file_path, destination_blob)
+
+
+def upload_file_retry(cloud_file_services: CloudFileService, file_path, destination_blob):
+  max_retries = 3
+  is_sent = True
+  count = 0
+  pause_time = 1
+  while is_sent is False and count < max_retries:
+    try:
+      cloud_file_services.upload_file(file_path, destination_blob)
+      is_sent = True
+    except:
+      logger.info(f"Error sending! Pausing {pause_time} seconds for effect.")
+      time.sleep(pause_time)
+      count += 1
+      if count > max_retries:
+        logger.info(f"Error sending! Reached maximum {max_retries} send retries. Giving up attempting to send {destination_blob}.")
+
+

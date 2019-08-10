@@ -24,7 +24,7 @@ absl-py==0.7.0
 astor==0.6
 gast==0.2.0
 google-pasta==0.1.6
-grpcio==1.8.6
+grpcio==1.22.0
 keras-applications==1.0.6
 keras-preprocessing==1.0.5
 protobuf==3.6.1
@@ -35,3 +35,7 @@ msgpack==0.6.1
 wrapt==1.11.1
 Pillow==6.1.0
 tensorflow-gpu==1.14.0
+pywin32==224
+wget==3.2
+quandl==3.4.8
+more-itertools==5.0.0

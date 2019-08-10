@@ -38,8 +38,8 @@ def plot_and_save(df, save_dir, category=None, hide_details=True):
     count += 1
 
 
-def save_data_as_chart(symbol: str, category: str, df_assembly: pd.DataFrame, bet_date_str: str, save_dir: str, translate_save_path_hdfs=False):
-  filename_img = f"{category}_{symbol}_{bet_date_str}"
+def save_data_as_chart(symbol: str, category: str, df_assembly: pd.DataFrame, yield_date_str: str, save_dir: str, translate_save_path_hdfs=False):
+  filename_img = f"{category}_{symbol}_{yield_date_str}"
 
   Y = df_assembly['high'].values[:-1]
   X = np.asarray(range(0, df_assembly['high'].shape[0] - 1))

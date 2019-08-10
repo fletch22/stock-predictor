@@ -7,11 +7,13 @@ import findspark
 import pandas as pd
 from google.cloud import automl_v1beta1 as automl
 from matplotlib import image
-from pyspark import SparkContext, SparkFiles
+from pyspark import SparkContext, SparkFiles, SparkConf
+from pyspark.sql import SparkSession
 
 import config
 from config import logger_factory
 from services import file_services
+from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.RedisService import RedisService
 from services.StockService import StockService
@@ -32,7 +34,7 @@ class AutoMlPredictionService():
     self.package_dir = package_dir
     self.short_model_id = short_model_id
 
-  def predict_and_calculate(self, image_dir: str, max_files=-1):
+  def predict_and_calculate(self, image_dir: str, sought_gain_frac: float, max_files=-1):
     file_paths = file_services.walk(image_dir)
     random.shuffle(file_paths, random.random)
 
@@ -66,16 +68,17 @@ class AutoMlPredictionService():
     results_filtered_1 = [d for d in results if d['category_predicted'] == "1"]
     logger.info(f"Found category_predicted = 1: {len(results_filtered_1)}.")
 
-    count = 0
+    count_yielded = 0
     logger.info("About to get shar equity data for comparison calcs.")
     aggregate_gain = []
-    sought_gain_pct = .01
+    max_drop = 1.0
+    invest_amount = 10000
 
     for r in results_filtered_1:
       eod_info = StockService.get_eod_of_date(r["symbol"], date_utils.parse_datestring(r["date"]))
       bet_price = eod_info["bet_price"]
       high = eod_info["high"]
-      close = eod_info["close"]
+      close = eod_info[Eod.CLOSE]
       low = eod_info["low"]
       score = r["score"]
       category_actual = r["category_actual"]
@@ -83,31 +86,49 @@ class AutoMlPredictionService():
       symbol = r["symbol"]
       yield_date = r["date"]
 
-      logger.info(f"Score: {score}; score_threshold: {self.score_threshold}")
-
-      # if price_filter_max > bet_price > price_filter_min:
-      if score > self.score_threshold:
-        if category_actual == category_predicted:
-          logger.info(f'Getting: {symbol}; {yield_date}')
-
-          sought_gain = bet_price + (bet_price * sought_gain_pct)
-
-          if high > sought_gain:
-            aggregate_gain.append(sought_gain_pct)
-          else:
-            gain = (close - bet_price) / bet_price
-            aggregate_gain.append(gain)
-
-          count += 1
-        else:
-          loss = -1 * (bet_price - close) / bet_price
-          aggregate_gain.append(loss)
+      count_yielded, invest_amount, aggregate_gain = self.calc_frac_gain(aggregate_gain, bet_price, category_actual, category_predicted, close, count_yielded, high, invest_amount, low, max_drop, score, sought_gain_frac, symbol, yield_date)
 
     for n in aggregate_gain:
       logger.info(n)
 
     total_samples = len(aggregate_gain)
-    logger.info(f"Back Test Accuracy: {count / total_samples}; total samples: {total_samples}; average gain: {mean(aggregate_gain)}")
+    logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean(aggregate_gain)}; total: {invest_amount}")
+
+  def calc_frac_gain(self, aggregate_gain, bet_price, category_actual, category_predicted, close, count, high, initial_investment_amount, low, max_drop, score, sought_gain_frac, symbol, yield_date):
+    earned_amount = initial_investment_amount
+
+    logger.info(f"Score: {score}; score_threshold: {self.score_threshold}")
+    max_drop_price = bet_price - (max_drop * bet_price)
+    logger.info(f"bp: {bet_price}; max_drop_price: {max_drop_price}; low: {low}; close: {close}")
+    # if price_filter_max > bet_price > price_filter_min:
+    if score >= self.score_threshold:
+      if category_actual == category_predicted:
+        logger.info(f'Getting: {symbol}; {yield_date}')
+
+        sought_gain_price = bet_price + (bet_price * sought_gain_frac)
+
+        if low < max_drop_price:
+          frac_return = -1 * max_drop
+          aggregate_gain.append(frac_return)
+        elif high > sought_gain_price:
+          frac_return = sought_gain_frac
+          aggregate_gain.append(sought_gain_frac)
+        else:
+          frac_return = (close - bet_price) / bet_price
+          aggregate_gain.append(frac_return)
+
+        earned_amount += earned_amount * frac_return
+
+        count += 1
+      else:
+        if low < max_drop_price:
+          aggregate_gain.append(-1 * max_drop)
+        else:
+          loss = -1 * (bet_price - close) / bet_price
+          aggregate_gain.append(loss)
+
+    return count, earned_amount, aggregate_gain
+
 
 def get_spark_results(image_info):
   findspark.init()
@@ -139,6 +160,8 @@ def spark_category_predict(image_info):
     redis_service.write_as_json(key_pred, prediction)
   else:
     logger.info("Found prediction in Redis cache.")
+
+  redis_service.close_client_connection()
 
   return prediction
 

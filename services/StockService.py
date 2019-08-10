@@ -9,6 +9,7 @@ from pandas import DataFrame
 import config
 from config import logger_factory
 from services.BasicSymbolPackage import BasicSymbolPackage
+from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from utils import date_utils
@@ -162,13 +163,16 @@ class StockService:
     return rand_symbols
 
   @classmethod
-  def _get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, sample_file_size: SampleFileTypeSize=SampleFileTypeSize.LARGE):
+  def _get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, sample_file_size: SampleFileTypeSize=SampleFileTypeSize.LARGE, start_date: datetime=None, end_date: datetime=None):
     df = cls.get_shar_equity_data(sample_file_size=sample_file_size)
     df = df.sort_values(["date"])
-    earliest_date_string = df["date"].to_list()[0]
+
+    df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
+
+    earliest_date_string = df_date_filtered["date"].to_list()[0]
     logger.info(f"Earliest date: {earliest_date_string}")
 
-    end_date_string = df["date"].to_list()[-1]
+    end_date_string = df_date_filtered["date"].to_list()[-1]
     logger.info(f"Latest date: {end_date_string}")
 
     earliest_date = date_utils.parse_datestring(earliest_date_string)
@@ -177,14 +181,14 @@ class StockService:
     delta = latest_date - earliest_date
     logger.info(f"Total years spanned by initial data load. {delta.days / 365}")
 
-    df_grouped = df.groupby('ticker')
+    df_grouped = df_date_filtered.groupby('ticker')
 
     def filter_grouped(x):
       first_row = x.iloc[0]
       start_day_volume = first_row['volume']
       last_row = x.iloc[-1]
       yield_day_volume = last_row['volume']
-      close_price = last_row['close']
+      close_price = last_row[Eod.CLOSE]
       shares_bought = amount_to_spend / close_price
 
       # Shares bought should be greater than .01% of the yield day's volume.
@@ -199,7 +203,7 @@ class StockService:
     return df_g_filtered
 
   @classmethod
-  def get_sample_data(cls, output_dir, min_samples, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
+  def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
     pct_gain_sought = 1.0
     min_price = 5.0
     amount_to_spend = 25000
@@ -215,7 +219,7 @@ class StockService:
     count = 0
     gain_list = []
 
-    sample_info = cls.get_sample_infos(df_g_filtered, num_days_avail, min_samples)
+    sample_info = cls.get_sample_infos(df_g_filtered, num_days_avail, min_samples, start_date=start_date, end_date=end_date)
 
     samples_remaining = min_samples
     while samples_remaining > 0:
@@ -239,7 +243,7 @@ class StockService:
         df_offset = df_g_symbol.tail(df_g_symbol.shape[0] - start_offset).head(trading_days_span)
         df_tailed = df_offset.tail(2)
 
-        close_price = df_tailed.iloc[-2]['close']
+        close_price = df_tailed.iloc[-2][Eod.CLOSE]
         high_price = df_tailed.iloc[-1]['high']
 
         logger.info(f"Ticker: -2: {df_tailed.iloc[-2]['ticker']}; -1 {df_tailed.iloc[-2]['ticker']} BuyPrice: {close_price} SellPrice: {high_price}")
@@ -276,9 +280,19 @@ class StockService:
 
     return df_good_short, df_bad_short
 
+  @classmethod
+  def filter_dataframe_by_date(cls, df, start_date: datetime, end_date: datetime):
+    df_date_filtered = df
+    if start_date is not None:
+      df_date_filtered = df[df["date"] >= date_utils.get_standard_ymd_format(start_date)]
+
+    if end_date is not None:
+      df_date_filtered = df_date_filtered[df_date_filtered["date"] <= date_utils.get_standard_ymd_format(end_date)]
+
+    return df_date_filtered
 
   @classmethod
-  def get_sample_infos(cls, df_g_filtered: DataFrame, num_days_avail: int, min_samples: int, translate_file_path_to_hdfs=False):
+  def get_sample_infos(cls, df_g_filtered: DataFrame, num_days_avail: int, min_samples: int, translate_file_path_to_hdfs=False, start_date: datetime=None, end_date: datetime=None):
     symbols = cls.get_random_symbols(df_g_filtered)
 
     logger.info(f"Num symbols: {len(symbols)}")
@@ -290,8 +304,11 @@ class StockService:
       symb = symbols[symb_ndx]
 
       if symb not in assemblies.keys():
+        logger.info(f"Getting symbol {symb}.")
         df_g_symbol = cls.get_symbol_df(symb, translate_file_path_to_hdfs)
-        total_avail_rows = df_g_symbol.shape[0]
+        df_date_filtered = cls.filter_dataframe_by_date(df_g_symbol, start_date, end_date)
+
+        total_avail_rows = df_date_filtered.shape[0]
         assemblies[symb] = {"total_avail_rows": total_avail_rows, "offsets": []}
 
       symb_dict = assemblies[symb]
@@ -328,12 +345,12 @@ class StockService:
   def get_symbol_df(cls, symb, translate_file_path_to_hdfs):
     cache = cls.symbol_df_cache
     if symb in cache.keys():
-      df_g_symbol = cache[symb]
+      df = cache[symb]
     else:
-      df_g_symbol = EquityUtilService.get_df_from_ticker_path(symb, translate_file_path_to_hdfs)
-      cache[symb] = df_g_symbol
+      df = EquityUtilService.get_df_from_ticker_path(symb, translate_file_path_to_hdfs)
+      cache[symb] = df
 
-    return df_g_symbol
+    return df
 
   @classmethod
   def get_random_symbols(cls, df_g_filtered, min_samples=-1):
@@ -352,10 +369,10 @@ class StockService:
     df_symbol = self.get_symbol_df(symbol, translate_file_path_to_hdfs=False)
     df_symbol = df_symbol.sort_values(by=['date'])
 
-    logger.info(f"Number of days in {symbol}: {df_symbol.shape[0]}")
-    logger.info(f"Start date: {df_symbol.iloc[0, :]['date']}")
-    logger.info(f"End date: {df_symbol.iloc[-1, :]['date']}")
-    logger.info(f"Date sought: {date_utils.get_standard_ymd_format(date)}")
+    logger.debug(f"Number of days in {symbol}: {df_symbol.shape[0]}")
+    logger.debug(f"Start date: {df_symbol.iloc[0, :]['date']}")
+    logger.debug(f"End date: {df_symbol.iloc[-1, :]['date']}")
+    logger.debug(f"Date sought: {date_utils.get_standard_ymd_format(date)}")
 
     week_before_date = date + timedelta(days=-7)
     bet_date_str = date_utils.get_standard_ymd_format(date)
@@ -363,8 +380,12 @@ class StockService:
     df = df_symbol[(df_symbol["date"] <= bet_date_str) & (df_symbol["date"] > week_before_date_str)]
     df = df.sort_values(by=['date'])
 
-    bet_price = df.iloc[-2,:]["close"]
+    bet_price = df.iloc[-2,:][Eod.CLOSE]
     df_yield_day = df.iloc[-1,:]
+
+    bet_date_str = df.iloc[-2, :]["date"]
+    yield_date_str = df_yield_day["date"]
+    logger.info(f"{symbol}: dates: {bet_date_str}; {yield_date_str}; {bet_price}; {df_yield_day['high']}")
 
     return {
       "symbol": symbol,
@@ -373,5 +394,5 @@ class StockService:
       "open": df_yield_day["open"],
       "high": df_yield_day["high"],
       "low": df_yield_day["low"],
-      "close": df_yield_day["close"],
+      Eod.CLOSE: df_yield_day[Eod.CLOSE],
     }

@@ -18,6 +18,8 @@ class LoggerFactory():
     self.rot_handler = RotatingFileHandler(constants.LOGGING_FILE_PATH, maxBytes=2000000, backupCount=5)
     self.rot_handler.setFormatter(self.formatter)
 
+    self.file_handler = logging.FileHandler(constants.LOGGING_FILE_PATH)
+
   def create_logger(self, name):
     print(f"Creating logger {name} ...")
     logger = logging.getLogger(name)
@@ -25,6 +27,8 @@ class LoggerFactory():
 
     # NOTE: This is problematic when using Spark.
     # logger.addHandler(self.rot_handler)
+
+    logger.addHandler(self.file_handler)
 
     logger.addHandler(self.handler_stream)
 

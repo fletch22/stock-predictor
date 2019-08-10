@@ -9,4 +9,8 @@ docker rm %NAME%
 
 docker build -t %TAG% -f %FILE% .
 
-docker run -it --name %NAME% -p 6379:6379 %TAG%
+SET VOLUME_PATH=%HOMEDRIVE%%HOMEPATH%\shared_volumes\sp\redis
+
+echo "Using %VOLUME_PATH%."
+
+docker run -it --name %NAME% -p 6379:6379 -v %VOLUME_PATH%:/data %TAG% --appendonly yes

@@ -2,12 +2,13 @@ import os
 from datetime import datetime
 from unittest import TestCase
 
-from pandas import DataFrame
+from services.Eod import Eod
 
 import config
 from config import logger_factory
 from services import chart_service, file_services
 from services.BasicSymbolPackage import BasicSymbolPackage
+from services.SampleFileTypeSize import SampleFileTypeSize
 from services.StockService import StockService
 from utils import random_utils, date_utils
 from utils.date_utils import STANDARD_DAY_FORMAT
@@ -153,11 +154,10 @@ class TestStockService(TestCase):
 
   def test_get_sample_infos(self):
     # Arrange
-    use_short_list = True
     amount_to_spend = 250
     num_days_avail = 2
     min_price = 5.0
-    df_g_filtered = StockService._get_and_prep_equity_data(use_short_list, amount_to_spend, num_days_avail, min_price)
+    df_g_filtered = StockService._get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, SampleFileTypeSize.SMALL)
 
     min_samples = 33
 
@@ -181,7 +181,7 @@ class TestStockService(TestCase):
     date_before = date_utils.parse_datestring("2013-02-01")
     eod_data_before = StockService.get_eod_of_date(symbol, date_before, df_day_before)
 
-    logger.info(f"Close: {eod_data_before['close']}")
+    logger.info(f"Close: {eod_data_before[Eod.CLOSE]}")
 
     df_yield_day = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-15") & (df["date"] <= "2013-02-01")]
     date_yield_day = date_utils.parse_datestring("2013-02-01")
@@ -189,4 +189,4 @@ class TestStockService(TestCase):
 
     logger.info(f"Bet_price: {eod_data['bet_price']}")
 
-    assert(eod_data_before["close"] == eod_data["bet_price"])
+    assert(eod_data_before[Eod.CLOSE] == eod_data["bet_price"])

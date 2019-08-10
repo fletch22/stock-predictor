@@ -38,3 +38,6 @@ class RedisService:
   def read_df(self, key):
     result = self.redis_client.get(key)
     return None if result is None else json.loads(result)
+
+  def close_client_connection(self):
+    self.redis_client.close()

@@ -284,3 +284,11 @@ Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
         activate base
         
         %SPARK_HOME%/bin/pyspark
+        
+## Conda Issues
+
+    Conda is giving a Java error: "java gateway process exited before sending its port number"
+    
+        Attempting to run pip install pyspark
+        
+            Will upgrade pyspark to 2.4.3-py_0, py4j to 0.10.7-py36_0

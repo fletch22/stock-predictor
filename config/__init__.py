@@ -1,4 +1,4 @@
+from config import logger_factory
 from . import constants
-import logging
 
-logging.basicConfig(filename='myapp.log', level=logging.INFO)
+logger = logger_factory.create_logger(__name__)

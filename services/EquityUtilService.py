@@ -5,7 +5,9 @@ from pyspark import SparkFiles
 
 import config
 from config.logger_factory import logger_factory
+from services import file_services
 from services.SampleFileTypeSize import SampleFileTypeSize
+from services.StockService import StockService
 
 logger = logger_factory.create_logger(__name__)
 
@@ -14,7 +16,6 @@ class EquityUtilService:
   @classmethod
   def split_shar_equity_to_ticker_files(cls, sample_size: SampleFileTypeSize=SampleFileTypeSize.LARGE):
 
-    shar_file_path = None
     if sample_size == SampleFileTypeSize.LARGE:
       shar_file_path = config.constants.SHAR_EQUITY_PRICES
     else:
@@ -45,3 +46,12 @@ class EquityUtilService:
       symbol_path = SparkFiles.get(symbol_path)
 
     return pd.read_csv(symbol_path)
+
+  @classmethod
+  def find_missing_days(cls):
+    df = StockService.get_shar_equity_data(SampleFileTypeSize.SMALL)
+    df_sorted = df.sort_values(by=['date'], inplace=False)
+
+    start_date_str =
+
+    file_services.walk(config.constants.)

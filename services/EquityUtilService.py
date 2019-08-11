@@ -52,6 +52,6 @@ class EquityUtilService:
     df = StockService.get_shar_equity_data(SampleFileTypeSize.SMALL)
     df_sorted = df.sort_values(by=['date'], inplace=False)
 
-    start_date_str =
+    start_date_str = 
 
     file_services.walk(config.constants.)

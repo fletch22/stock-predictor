@@ -22,7 +22,7 @@ class TestChartServices(TestCase):
     save_dir = os.path.join(config.constants.CACHE_DIR)
 
     # Act
-    chart_service.plot_and_save(df, save_dir, "1", hide_details=False)
+    chart_service.plot_and_save_for_learning(df, save_dir, "1")
 
     # Assert
     assert(os.path.exists(expected_output_path))

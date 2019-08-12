@@ -1,4 +1,7 @@
 import json
+import pickle
+import zlib
+
 import pandas as pd
 
 import redis
@@ -16,8 +19,10 @@ class RedisService:
       host=hostname,
       port=port,
       password=password,
-      decode_responses=True
+      decode_responses=True,
+      socket_timeout=100
     )
+    self.redis_client.config_set("appendonly", "yes")
 
   def write_string(self, key: str, value: str):
     self.redis_client.set(key, value)
@@ -33,11 +38,13 @@ class RedisService:
     return None if result is None else json.loads(result)
 
   def write_df(self, key: str, df: pd.DataFrame):
-    self.redis_client.set(key, df.to_json())
+    self.redis_client.set("key", zlib.compress(pickle.dumps(df)))
+    # self.redis_client.set(key, df.to_json())
 
   def read_df(self, key):
-    result = self.redis_client.get(key)
-    return None if result is None else json.loads(result)
+    return pickle.loads(zlib.decompress(self.redis_client.get(key)))
+    # result = self.redis_client.get(key)
+    # return None if result is None else json.loads(result)
 
   def close_client_connection(self):
     self.redis_client.close()

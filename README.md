@@ -292,3 +292,8 @@ Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
         Attempting to run pip install pyspark
         
             Will upgrade pyspark to 2.4.3-py_0, py4j to 0.10.7-py36_0
+            
+## TODO:
+
+1. get_todays_merged_shar_data should be modified to get the most recent trading day's merged data. So it would only update if a nonzero
+length file was found in yesterday's records. 

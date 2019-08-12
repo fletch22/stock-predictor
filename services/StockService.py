@@ -2,18 +2,16 @@ import os
 import random
 from datetime import datetime, timedelta
 
-import pandas
 import pandas as pd
 from pandas import DataFrame
 
 import config
 from config import logger_factory
-from services.BasicSymbolPackage import BasicSymbolPackage
+from services import chart_service
 from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from utils import date_utils
-from utils.date_utils import STANDARD_DAY_FORMAT
 
 logger = logger_factory.create_logger(__name__)
 
@@ -22,81 +20,6 @@ class StockService:
   DATA_FILE_TYPE_LEGACY = "StockServiceLegacy"
   DATA_FILE_TYPE_RAW = "StockServiceRaw"
   symbol_df_cache = {}
-
-
-  @classmethod
-  def get_stock_from_date_strings(cls, symbol: str, start_date_str: str, num_days: int = 30):
-    start_date = datetime.strptime(start_date_str, STANDARD_DAY_FORMAT)
-
-    return cls.get_stock_legacy_format(symbol, start_date, num_days)
-
-  @classmethod
-  def get_stock_raw(cls, symbol, start_date: datetime, num_days: int):
-    cache_file_path, does_exists = cls.get_cache_file_info(cls.DATA_FILE_TYPE_RAW, symbol, start_date, num_days)
-
-    df = None
-    if does_exists:
-      # return to caller as DF
-      df = pandas.read_csv(cache_file_path)
-    else:
-      # Get from SHAR_DAILY.csv
-      df_full = cls.get_shar_equity_data()
-
-      df = cls.get_stock_raw_from_dataframe(df_full, symbol, start_date, num_days)
-
-      # Save df as file in cache folder
-      df.to_csv(path_or_buf=cache_file_path)
-
-    return df
-
-  @classmethod
-  def get_shar_equity_data(cls, sample_file_size: SampleFileTypeSize = SampleFileTypeSize.LARGE) -> DataFrame:
-    file_path = config.constants.SHAR_EQUITY_PRICES
-    if sample_file_size == SampleFileTypeSize.SMALL:
-      file_path = config.constants.SHAR_EQUITY_PRICES_SHORT
-    return pandas.read_csv(file_path)
-
-  @classmethod
-  def get_multiple_stocks(cls, basic_symbol_package: BasicSymbolPackage, df: pandas.DataFrame = None):
-    all_dfs = []
-    if len(basic_symbol_package.data) > 0:
-
-      for package in basic_symbol_package.data:
-        symbol = package["symbol"]
-        start_date = package["start_date"]
-        num_days = package["num_days"]
-
-        cache_file_path, does_exists = cls.get_cache_file_info(cls.DATA_FILE_TYPE_RAW, symbol, start_date, num_days)
-
-        df_symbol = None
-        if does_exists:
-          # return to caller as DF
-          df_symbol = pandas.read_csv(cache_file_path)
-        else:
-          if df is None:
-            df = cls.get_shar_equity_data()
-
-          # Get from SHAR_DAILY.csv
-          df_symbol = cls.get_stock_raw_from_dataframe(df, symbol, start_date, num_days)
-
-          # Save df as file in cache folder
-          df_symbol.to_csv(path_or_buf=cache_file_path)
-
-        all_dfs.append(df_symbol)
-
-    return all_dfs
-
-  @classmethod
-  def get_stock_raw_from_dataframe(cls, df: pandas.DataFrame, symbol, start_date: datetime, num_days: int):
-    df_symbol = df[df['ticker'] == symbol.upper()]
-
-    # Use filter on DF
-    if start_date is not None:
-      df_symbol = df_symbol[df_symbol['date'] > date_utils.get_standard_ymd_format(start_date)]
-
-    df_sorted = df_symbol.sort_values(by=['date'], inplace=False)
-
-    return df_sorted.head(num_days)
 
   @classmethod
   def get_cache_file_info(cls, data_file_type_name, symbol, start_date: datetime, num_days: int):
@@ -107,32 +30,6 @@ class StockService:
     does_exists = os.path.exists(cache_file_path)
 
     return cache_file_path, does_exists
-
-  @classmethod
-  def get_stock_legacy_format(cls, symbol, start_date: datetime, num_days: int):
-    # check if hash filename exists
-    cache_file_path, does_exists = cls.get_cache_file_info(cls.DATA_FILE_TYPE_LEGACY, symbol, start_date, num_days)
-
-    df = None
-    if does_exists:
-      # return to caller as DF
-      df = pandas.read_csv(cache_file_path)
-    else:
-      df_symbol = cls.get_stock_raw(symbol, start_date, num_days)
-
-      columns = {'open': 'Open', 'date': 'Date', 'closeunadj': 'Close', 'close': 'Adj Close', 'high': 'High', 'low': 'Low', 'volume': 'Volume'}
-      df_renamed = df_symbol.rename(index=str, columns=columns)
-
-      df = df_renamed.drop(['ticker', 'dividends', 'lastupdated'], axis=1)
-
-      cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
-      df = df[cols]
-      # df = df.ix[:, cols]
-
-      # Save df as file in cache folder
-      df.to_csv(path_or_buf=cache_file_path)
-
-    return df
 
   @classmethod
   def get_cache_filename(cls, symbol, start_date: datetime, num_days: int):
@@ -152,19 +49,8 @@ class StockService:
     return rand_symbols
 
   @classmethod
-  def get_random_assembly_indices_from_df(cls, df, amount=0):
-    unique_indices = df["assembly_index"].unique().tolist()
-    random.shuffle(unique_indices, random.random)
-
-    rand_symbols = unique_indices
-    if amount > 0:
-      rand_symbols = unique_indices[:amount]
-
-    return rand_symbols
-
-  @classmethod
   def _get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, sample_file_size: SampleFileTypeSize=SampleFileTypeSize.LARGE, start_date: datetime=None, end_date: datetime=None):
-    df = cls.get_shar_equity_data(sample_file_size=sample_file_size)
+    df = EquityUtilService.get_shar_equity_data(sample_file_size=sample_file_size)
     df = df.sort_values(["date"])
 
     df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
@@ -182,25 +68,28 @@ class StockService:
     logger.info(f"Total years spanned by initial data load. {delta.days / 365}")
 
     df_grouped = df_date_filtered.groupby('ticker')
+    # df_g_sorted = df_grouped.sort_values(by=['date'], inplace=False)
 
-    def filter_grouped(x):
-      first_row = x.iloc[0]
+    df_g_filtered = df_grouped.filter(lambda x: cls.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
+
+    return df_g_filtered
+
+  @classmethod
+  def filter_equity_basic_criterium(cls, amount_to_spend: int, num_days_avail: int, min_price: float, ticker_group: pd.DataFrame):
+      df_g_ticker_sorted = ticker_group.sort_values(by='date')
+      first_row = df_g_ticker_sorted.iloc[0]
       start_day_volume = first_row['volume']
-      last_row = x.iloc[-1]
+      last_row = df_g_ticker_sorted.iloc[-1]
       yield_day_volume = last_row['volume']
       close_price = last_row[Eod.CLOSE]
       shares_bought = amount_to_spend / close_price
 
       # Shares bought should be greater than .01% of the yield day's volume.
       # Shares bought should be greater than .005% of the start span day's volume. So
-      return len(x) > num_days_avail \
+      return df_g_ticker_sorted.shape[0] > num_days_avail \
              and close_price >= min_price \
              and shares_bought > (.0001 * yield_day_volume) \
              and start_day_volume > (yield_day_volume/2)
-
-    df_g_filtered = df_grouped.filter(lambda x: filter_grouped(x))
-
-    return df_g_filtered
 
   @classmethod
   def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
@@ -275,8 +164,8 @@ class StockService:
       good_path = os.path.join(output_dir, f'up_{pct_gain_sought}_pct.csv')
       bad_path = os.path.join(output_dir, f'not_up_{pct_gain_sought}_pct.csv')
 
-      df_good_short.to_csv(good_path)
-      df_bad_short.to_csv(bad_path)
+      df_good_short.to_csv(good_path, index=False)
+      df_bad_short.to_csv(bad_path, index=False)
 
     return df_good_short, df_bad_short
 
@@ -396,3 +285,31 @@ class StockService:
       "low": df_yield_day["low"],
       Eod.CLOSE: df_yield_day[Eod.CLOSE],
     }
+
+  @classmethod
+  def get_stock_history_for_day(cls, df_g_filtered: pd.DataFrame, num_days_avail: int, save_dir: str, translate_file_path_to_hdfs=False, end_date: datetime = None):
+
+    # This approximates the number of trading days needed; take num_days_avail being sampled and divide by 253 possible trading daus per year
+    # This yields the number years (and +1) to look back. Multiply das in a year and we get number of days to look in the past.
+    days = int((num_days_avail/253 + 1) * 365)
+    start_date = end_date - timedelta(days=days)
+    df_date_filtered = StockService.filter_dataframe_by_date(df_g_filtered, start_date, end_date)
+
+    symbols = df_date_filtered["ticker"].unique().tolist()
+
+    logger.info(f"Symbols (possible): {len(symbols)}")
+
+    def create_image(x: pd.DataFrame, num_days_avail: int, sav_dir: str):
+      logger.info(f"Getting symbol {x.iloc[0,:]['ticker']}.")
+      # df_g_symbol = cls.get_symbol_df(symb, translate_file_path_to_hdfs)
+      df_date_filtered = StockService.filter_dataframe_by_date(x, None, end_date)
+
+      num_days_for_symbol = df_date_filtered.shape[0]
+      if num_days_for_symbol >= num_days_avail:
+        df_date_shortened = df_date_filtered.tail(num_days_avail)
+        logger.info("Create image here.")
+        chart_service.clean_and_save_chart(df_date_shortened, save_dir)
+
+    df_grouped = df_date_filtered.groupby("ticker")
+
+    df_grouped.filter(lambda x: create_image(x, num_days_avail, save_dir))

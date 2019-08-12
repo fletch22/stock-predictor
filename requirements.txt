@@ -39,3 +39,4 @@ pywin32==224
 wget==3.2
 quandl==3.4.8
 more-itertools==5.0.0
+requests==2.22.0

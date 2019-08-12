@@ -28,6 +28,7 @@ QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
 SHAR_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices")
 SHAR_DAILY = os.path.join(QUANDL_TBLS_DIR, "shar_daily.csv")
 SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices.csv")
+SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_merged.csv")
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 
 SHAR_SPLIT_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "splits")
@@ -68,3 +69,7 @@ BACKUP_VOLUME_LABEL = "Flesche"
 quandl_key_path = os.path.join(CREDENTIALS_ROOT, "quandl_key.txt")
 with open(quandl_key_path, "r") as f:
   QUANDL_KEY = f.read()
+
+wtd_key_path = os.path.join(CREDENTIALS_ROOT, "world_trading_data_key.txt")
+with open(wtd_key_path, "r") as f:
+  WTD_KEY = f.read()

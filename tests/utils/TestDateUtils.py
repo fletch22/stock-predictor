@@ -13,17 +13,6 @@ logging = logger_factory.create_logger(__name__)
 
 class TestDateUtils(TestCase):
 
-  def test_create_image_from_symbol_data(self):
-    # Arrange
-    file_info = [
-      (os.path.join(config.constants.CACHE_DIR, 'up_1.0_pct.csv'), "1"),
-      (os.path.join(config.constants.CACHE_DIR, 'not_up_1.0_pct.csv'), "0")
-    ]
-
-    chart_service.plot_and_save_from_files(file_info)
-
-    # Assert
-
   def test_numpy(self):
     arr = [1, 2, 3, 4, 5]
 

@@ -8,6 +8,7 @@ import config
 from config import logger_factory
 from services import chart_service, file_services
 from services.BasicSymbolPackage import BasicSymbolPackage
+from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from services.StockService import StockService
 from utils import random_utils, date_utils
@@ -33,64 +34,9 @@ class TestStockService(TestCase):
     assert filename is not None
     assert filename == 'goog_2222-04-01_100.csv'
 
-  def test_get_symbol_data_with_date(self):
-    # Arrange
-    symbol = "aapl"
-    start_date = datetime.strptime("2017-04-01", STANDARD_DAY_FORMAT)
-
-    # Act
-    df = StockService.get_stock_legacy_format(symbol, start_date, 5)
-
-    print(df.head())
-    print(f'Rows: {df.shape[0]}')
-
-    # Assert
-    assert (df is not None)
-    assert(df.shape[0] == 5)
-
-  def test_get_symbol_data_with_datestring(self):
-    # Arrange
-    symbol = "hd"
-    num_expected = 100
-
-    # Act
-    df = StockService.get_stock_from_date_strings(symbol, '2010-10-01', num_expected)
-
-    print(df.head())
-    print(f'Rows: {df.shape[0]}')
-
-    # Assert
-    assert(df.shape[0] == num_expected)
-
-  def test_get_symbol_data_with_datestring_2(self):
-    # Arrange
-    symbol = "gs"
-
-    # Act
-    df = StockService.get_stock_from_date_strings(symbol, "2015-01-15")
-
-    print(df.head())
-    print(f'Rows: {df.shape[0]}')
-
-    # Assert
-    assert(df.shape[0] == 30)
-
-  def test_get_multiple_stocks(self):
-    # Arrange
-    basic_symbol_package = BasicSymbolPackage()
-    num_expected = 100
-
-    basic_symbol_package.add_symbol("ibm", "2011-01-01", num_expected)
-
-    # Act
-    all_dfs = StockService.get_multiple_stocks(basic_symbol_package)
-
-    # Assert
-    assert(len(all_dfs) == num_expected)
-
   def test_load_random_stocks(self):
     # Arrange
-    df = StockService.get_shar_equity_data()
+    df = EquityUtilService.get_shar_equity_data()
     expected_num_to_load = 7
 
     unique_symbols = df["ticker"].unique().tolist()
@@ -106,7 +52,6 @@ class TestStockService(TestCase):
 
   def test_get_plot_and_save_many(self):
     # Arrange
-    hide_details = False
     prediction_dir = os.path.join(config.constants.CACHE_DIR, "prediction_test")
     if os.path.exists(prediction_dir):
       shutil.rmtree(prediction_dir)
@@ -119,10 +64,10 @@ class TestStockService(TestCase):
     os.makedirs(graph_dir, exist_ok=True)
 
     # file_path = os.path.join(prediction_dir, "up_1.0_pct.csv")
-    # chart_service.plot_and_save_from_single_file(graph_dir, file_path, hide_details=False)
+    # chart_service.plot_and_save_from_single_file(graph_dir, file_path)
 
-    chart_service.plot_and_save(df_good, graph_dir, category="1", hide_details=hide_details)
-    chart_service.plot_and_save(df_bad, graph_dir, category="0", hide_details=hide_details)
+    chart_service.plot_and_save_for_learning(df_good, graph_dir, category="1")
+    chart_service.plot_and_save_for_learning(df_bad, graph_dir, category="0")
 
     assert (True)
 
@@ -140,7 +85,7 @@ class TestStockService(TestCase):
 
   def test_get_result_from_date(self):
     # Arrange
-    df = StockService.get_shar_equity_data(sample_file_size=True)
+    df = EquityUtilService.get_shar_equity_data(sample_file_size=True)
     symbol = "AAPL"
     date = date_utils.parse_datestring("2019-06-14")
 
@@ -175,7 +120,7 @@ class TestStockService(TestCase):
   def test_yield_function(self):
     # Arrange
     symbol = "IBM"
-    df = StockService.get_shar_equity_data()
+    df = EquityUtilService.get_shar_equity_data()
 
     df_day_before = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-01") & (df["date"] <= "2013-01-31")]
     date_before = date_utils.parse_datestring("2013-02-01")
@@ -190,3 +135,28 @@ class TestStockService(TestCase):
     logger.info(f"Bet_price: {eod_data['bet_price']}")
 
     assert(eod_data_before[Eod.CLOSE] == eod_data["bet_price"])
+
+  def test_get_stock_history_for_day(self):
+    # Arrange
+    amount_to_spend = 25000
+    num_days_avail = 1000
+    min_price = 5.0
+    end_date = date_utils.parse_datestring("2019-07-17")
+
+    df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.LARGE)
+    # df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.SMALL)
+
+    logger.info(f"Found {len(df['ticker'].unique().tolist())} tickers.")
+
+    df_grouped = df.groupby('ticker')
+
+    df_g_filtered = df_grouped.filter(lambda x: StockService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
+
+    logger.info(f"df_g_filtered {len(df_g_filtered['ticker'].unique().tolist())} tickers.")
+
+    parent_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "daily")
+    os.makedirs(parent_dir, exist_ok=True)
+    save_dir = file_services.create_unique_folder(parent_dir, "bet")
+
+    # Act
+    StockService.get_stock_history_for_day(df_g_filtered, 1000, save_dir, False, end_date)

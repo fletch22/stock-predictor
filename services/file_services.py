@@ -5,6 +5,7 @@ from os import walk as walker
 import os
 from zipfile import ZipFile
 
+import config
 from utils import date_utils
 
 
@@ -66,3 +67,13 @@ def get_windows_drive_volume_label(drive_letter: str):
   )
 
   return volumeNameBuffer.value
+
+def get_date_modified(file_path):
+  unix_date = os.path.getmtime(file_path)
+  return datetime.fromtimestamp(unix_date)
+
+def file_modified_today(file_path):
+  return datetime.today().timetuple().tm_yday - get_date_modified(file_path).timetuple().tm_yday == 0
+
+def get_ticker_filename(symbol: str):
+  return os.path.join(config.constants.SHAR_SPLIT_EQUITY_PRICES_DIR, f"{symbol}.csv")

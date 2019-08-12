@@ -1,3 +1,5 @@
+import pickle
+import zlib
 from unittest import TestCase
 
 import pandas as pd
@@ -5,7 +7,9 @@ from stopwatch import Stopwatch
 
 import config
 from config import logger_factory
+from services.EquityUtilService import EquityUtilService
 from services.RedisService import RedisService
+from services.StockService import StockService
 
 logger = logger_factory.create_logger(__name__)
 
@@ -59,4 +63,31 @@ class TestRedisService(TestCase):
     assert(duration_write < 125)
     assert(duration_read < 125)
     logger.info(f"Duration write:read - {duration_write}: {duration_read}")
+
+  def test_dataframe_time(self):
+    # Arrange
+    stopwatch = Stopwatch()
+    stopwatch.start()
+    df = EquityUtilService.get_todays_merged_shar_data()
+    stopwatch.stop()
+    logger.info(f"Elapsed: {stopwatch}")
+
+    redis_service = RedisService()
+    key = "test"
+
+    # Set
+    stopwatch.reset()
+    stopwatch.start()
+    redis_service.write_df(key, df)
+    stopwatch.stop()
+
+    logger.info(f"Elapsed: {stopwatch}")
+
+    stopwatch.reset()
+    stopwatch.start()
+    df = redis_service.read_df(key)
+    stopwatch.stop()
+
+    logger.info(f"Elapsed: {stopwatch}")
+
 

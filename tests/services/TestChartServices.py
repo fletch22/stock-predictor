@@ -4,7 +4,6 @@ from unittest import TestCase
 import config
 from config import logger_factory
 from services import chart_service
-from services.StockService import StockService
 import pandas as pd
 
 logger = logger_factory.create_logger(__name__)

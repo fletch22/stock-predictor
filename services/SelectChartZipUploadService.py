@@ -103,18 +103,11 @@ class SelectChartZipUploadService:
     logger.info(f"Setting aside {num_files_needed} for holdout.")
     train_test_dir, _ = AutoMlGeneralService.prep_for_upload(package_path, num_files_needed)
 
-  @classmethod
-  def create_learning_set(cls):
-    min_price = 5.0
-    amount_to_spend = 25000
-    trading_days_span = 1000
-    min_samples = 120000
-    pct_gain_sought = 1.0
-    start_date: datetime = None  # date_utils.parse_datestring("2015-07-23")
-    end_date: datetime = None  # date_utils.parse_datestring("2015-04-17")
-    pct_test_holdout = 15
+    return train_test_dir
 
+  @classmethod
+  def create_learning_set(cls, start_date: datetime, end_date: datetime, min_samples:int, pct_gain_sought: float, trading_days_span: int, pct_test_holdout: float, min_price: float, amount_to_spend: float):
     package_path = cls.select_and_process(min_price, amount_to_spend, trading_days_span, min_samples, pct_gain_sought, start_date, end_date)
 
-    SelectChartZipUploadService.split_files_and_prep(min_samples, package_path, pct_test_holdout)
+    return SelectChartZipUploadService.split_files_and_prep(min_samples, package_path, pct_test_holdout)
 

@@ -39,9 +39,9 @@ def get_random_assembly_indices_from_df(df, amount=0):
 
 def clean_and_save_chart(df: pd.DataFrame, save_dir: str):
   symb = df.iloc[0,:]["ticker"]
-  bet_date_str = df.iloc[-1,:]['date']
+  yield_date_str = df.iloc[-1,:]['date']
 
-  save_data_as_chart_no_category(symb, df, bet_date_str, save_dir)
+  save_data_as_chart_no_category(symb, df, yield_date_str, save_dir)
 
 def save_data_as_chart(symbol: str, category: str, df: pd.DataFrame, yield_date_str: str, save_dir: str, translate_save_path_hdfs=False):
   filename_prefix = f"{category}_{symbol}_{yield_date_str}"
@@ -56,6 +56,7 @@ def save_data_as_chart_no_category(symbol: str, df: pd.DataFrame, yield_date_str
 def save_chart_to_filename(df_assembly: pd.DataFrame, save_dir: str, filename_prefix: str, translate_save_path_hdfs=False):
   Y = df_assembly['high'].values[:-1]
   X = np.asarray(range(0, df_assembly['high'].shape[0] - 1))
+
   plt.clf()
 
   plt.scatter(X, Y, c='black', s=1)

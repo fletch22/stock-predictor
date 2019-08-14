@@ -150,7 +150,7 @@ class TestStockService(TestCase):
 
     df_grouped = df.groupby('ticker')
 
-    df_g_filtered = df_grouped.filter(lambda x: StockService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
 
     logger.info(f"df_g_filtered {len(df_g_filtered['ticker'].unique().tolist())} tickers.")
 

@@ -70,26 +70,9 @@ class StockService:
     df_grouped = df_date_filtered.groupby('ticker')
     # df_g_sorted = df_grouped.sort_values(by=['date'], inplace=False)
 
-    df_g_filtered = df_grouped.filter(lambda x: cls.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
 
     return df_g_filtered
-
-  @classmethod
-  def filter_equity_basic_criterium(cls, amount_to_spend: int, num_days_avail: int, min_price: float, ticker_group: pd.DataFrame):
-      df_g_ticker_sorted = ticker_group.sort_values(by='date')
-      first_row = df_g_ticker_sorted.iloc[0]
-      start_day_volume = first_row['volume']
-      last_row = df_g_ticker_sorted.iloc[-1]
-      yield_day_volume = last_row['volume']
-      close_price = last_row[Eod.CLOSE]
-      shares_bought = amount_to_spend / close_price
-
-      # Shares bought should be greater than .01% of the yield day's volume.
-      # Shares bought should be greater than .005% of the start span day's volume. So
-      return df_g_ticker_sorted.shape[0] > num_days_avail \
-             and close_price >= min_price \
-             and shares_bought > (.0001 * yield_day_volume) \
-             and start_day_volume > (yield_day_volume/2)
 
   @classmethod
   def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
@@ -254,20 +237,23 @@ class StockService:
     return symbols
 
   @classmethod
-  def get_eod_of_date(self, symbol, date: datetime) -> dict:
+  def get_eod_of_date(self, symbol, yield_date: datetime) -> dict:
     df_symbol = self.get_symbol_df(symbol, translate_file_path_to_hdfs=False)
-    df_symbol = df_symbol.sort_values(by=['date'])
+    logger.info(f"Length of df during calc df_symbol: {df_symbol.shape[0]}")
+    df_symbol = df_symbol.sort_values(by=['date'], inplace=False)
 
-    logger.debug(f"Number of days in {symbol}: {df_symbol.shape[0]}")
-    logger.debug(f"Start date: {df_symbol.iloc[0, :]['date']}")
-    logger.debug(f"End date: {df_symbol.iloc[-1, :]['date']}")
-    logger.debug(f"Date sought: {date_utils.get_standard_ymd_format(date)}")
+    logger.info(f"Number of days in {symbol}: {df_symbol.shape[0]}")
+    logger.info(f"Start date: {df_symbol.iloc[0, :]['date']}")
+    logger.info(f"End date: {df_symbol.iloc[-1, :]['date']}")
+    logger.info(f"Yield Date sought: {date_utils.get_standard_ymd_format(yield_date)}")
 
-    week_before_date = date + timedelta(days=-7)
-    bet_date_str = date_utils.get_standard_ymd_format(date)
+    week_before_date = yield_date + timedelta(days=-7)
+    yield_date_str = date_utils.get_standard_ymd_format(yield_date)
     week_before_date_str = date_utils.get_standard_ymd_format(week_before_date)
-    df = df_symbol[(df_symbol["date"] <= bet_date_str) & (df_symbol["date"] > week_before_date_str)]
-    df = df.sort_values(by=['date'])
+    df = df_symbol[(df_symbol["date"] <= yield_date_str) & (df_symbol["date"] > week_before_date_str)]
+    df = df.sort_values(by=['date'], inplace=False)
+
+    logger.info(f"Length of df during calc: {df.shape[0]}")
 
     bet_price = df.iloc[-2,:][Eod.CLOSE]
     df_yield_day = df.iloc[-1,:]

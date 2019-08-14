@@ -22,7 +22,6 @@ class RedisService:
       decode_responses=True,
       socket_timeout=100
     )
-    self.redis_client.config_set("appendonly", "yes")
 
   def write_string(self, key: str, value: str):
     self.redis_client.set(key, value)

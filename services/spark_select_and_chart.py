@@ -22,16 +22,8 @@ def spark_process_sample_info(symbol_info):
 
   for start_offset in offsets:
     df_offset = df_date_filtered.tail(df_date_filtered.shape[0] - start_offset).head(trading_days_span)
-    df_tailed = df_offset.tail(2)
 
-    close_price = df_tailed.iloc[-2][Eod.CLOSE]
-    high_price = df_tailed.iloc[-1]['high']
-    yield_date_str = df_offset.iloc[-1]["date"]
-
-    logger.info(f"Ticker: -2: {df_tailed.iloc[-2]['ticker']}; -1 {df_tailed.iloc[-2]['ticker']} BuyPrice: {close_price}; SellPrice: {high_price}; Bet date: {yield_date_str}")
-    pct_gain = ((high_price - close_price) / close_price) * 100
-
-    category = "1" if pct_gain >= pct_gain_sought else "0"
+    category, yield_date_str = EquityUtilService.calculate_category(df_offset, pct_gain_sought)
 
     chart_service.save_data_as_chart(symbol, category, df_offset, yield_date_str, save_dir, translate_save_path_hdfs=True)
 

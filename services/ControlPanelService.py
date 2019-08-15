@@ -14,7 +14,10 @@ class ControlPanelService():
 
   @classmethod
   def get_predictions_on_holdout_date(self):
-    yield_date = date_utils.parse_datestring("2019-07-26")
+
+
+
+    yield_date = date_utils.parse_datestring("2019-08-09")
     pct_gain_sought = 1.0
     num_days_to_sample = 1000
     # short_model_id = "ICN5723877521014662275"

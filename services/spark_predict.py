@@ -21,7 +21,7 @@ def get_spark_results(image_info):
   sc.setLogLevel("INFO")
   print(sc._jsc.sc().uiWebUrl().get())
 
-  rdd = sc.parallelize(image_info, numSlices=4)
+  rdd = sc.parallelize(image_info, numSlices=6)
 
   results = rdd.map(spark_category_predict).collect()
 
@@ -54,8 +54,8 @@ def spark_category_predict(image_info):
 
   return prediction
 
-def get_prediction_cache_key(image_path:str, model_full_id: str):
-  return f"{model_full_id}_{image_path}"
+def get_prediction_cache_key(image_path:str, short_model_id: str):
+  return f"{short_model_id}_{image_path}"
 
 def get_prediction_from_automl(symbol: str, category_actual: str, image_path: str, short_model_id: str, score_threshold: float):
   automl_client, model_full_id = get_automl_client(short_model_id)
@@ -84,13 +84,15 @@ def get_prediction_from_automl(symbol: str, category_actual: str, image_path: st
   try:
     response = automl_client.predict(model_full_id, payload, params)
   except BaseException:
-    logger.info(f"ERROR!!! Problem with symbol {symbol} at {image_path}.")
-    return row
-    # pause_secs = 60
-    # logger.info(f"Got AutoMl predict exception. Guessing it was 'Gateway Timeout'. Pausing {pause_secs} seconds then trying once more.")
-    # time.sleep(pause_secs)
-    # automl_client, model_full_id = get_automl_client(short_model_id)
-    # response = automl_client.predict(model_full_id, payload, params)
+    pause_secs = 60
+    logger.info(f"Got AutoMl predict exception. Guessing it was 'Gateway Timeout'. Pausing {pause_secs} seconds then trying once more.")
+    time.sleep(pause_secs)
+    automl_client, model_full_id = get_automl_client(short_model_id)
+    try:
+      response = automl_client.predict(model_full_id, payload, params)
+    except BaseException:
+      logger.info(f"ERROR!!! Problem with symbol {symbol} at {image_path}.")
+      return row
 
   file_info = file_services.get_filename_info(image_path)
   if len(response.payload) == 0:

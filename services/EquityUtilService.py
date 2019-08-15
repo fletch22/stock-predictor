@@ -27,7 +27,12 @@ class EquityUtilService:
     if translate_to_hdfs_path:
       symbol_path = SparkFiles.get(symbol_path)
 
-    return pd.read_csv(symbol_path)
+    df = None
+    if os.path.exists(symbol_path):
+      df = pd.read_csv(symbol_path)
+      df.sort_values(by=['date'], inplace=True)
+
+    return df
 
   @classmethod
   def get_supplemental_filename(cls, start_date: datetime, end_date: datetime):
@@ -81,6 +86,7 @@ class EquityUtilService:
 
   @classmethod
   def merge_shar_equity_price_data(self, df_base: pd.DataFrame):
+    EquityUtilService.find_and_download_missing_days(df_base, datetime.now())
     files = file_services.walk(config.constants.SHAR_EQUITY_PRICES_DIR)
 
     supp_files = [f for f in files if os.path.basename(f).startswith("supp_")]

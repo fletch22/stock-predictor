@@ -147,17 +147,18 @@ def process(thing_dict):
   if df is not None:
 
     yield_date_str = record['date']
-    bet_date = date_utils.parse_datestring(yield_date_str) - timedelta(days=1)
-    df_yield_date = df[df['date'] == yield_date_str]
+    if yield_date_str is not None:
+      bet_date = date_utils.parse_datestring(yield_date_str) - timedelta(days=1)
+      df_yield_date = df[df['date'] == yield_date_str]
 
-    record["high"] = df_yield_date['high'].values[0]
-    record["low"] = df_yield_date['low'].values[0]
-    record["close"] = df_yield_date['close'].values[0]
+      record["high"] = df_yield_date['high'].values[0]
+      record["low"] = df_yield_date['low'].values[0]
+      record["close"] = df_yield_date['close'].values[0]
 
-    df_bet_date = df[df['date'] == date_utils.get_standard_ymd_format(bet_date)]
-    if df_bet_date.shape[0] > 0:
-      record['bet_price'] = df_bet_date['close'].values[0]
-    else:
-      record['bet_price'] = None
+      df_bet_date = df[df['date'] == date_utils.get_standard_ymd_format(bet_date)]
+      if df_bet_date.shape[0] > 0:
+        record['bet_price'] = df_bet_date['close'].values[0]
+      else:
+        record['bet_price'] = None
 
   return record

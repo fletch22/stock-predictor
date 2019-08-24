@@ -10,7 +10,7 @@ from pyspark import SparkContext, SparkFiles
 import pandas as pd
 import config
 from config import logger_factory
-from services import file_services, chart_service
+from services import file_services, chart_service, eod_data_service
 from services.CloudFileService import CloudFileService
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
@@ -65,7 +65,7 @@ class TestSelectChartZipUploadService(TestCase):
     assert (os.path.exists(train_test_file_0_0))
 
   def test_target_date(self):
-    df = EquityUtilService.get_todays_merged_shar_data()
+    df = eod_data_service.get_todays_merged_shar_data()
 
   def test_create_daily_set(self):
     # Arrange
@@ -85,20 +85,18 @@ class TestSelectChartZipUploadService(TestCase):
     min_price = 5.0
     amount_to_spend = 25000
     trading_days_span = 1000
-    min_samples = 500000
+    min_samples = 120000
     pct_gain_sought = 1.0
     start_date: datetime = None  # date_utils.parse_datestring("2015-07-23")
-    end_date: datetime = None  # date_utils.parse_datestring("2015-04-17")
-    pct_test_holdout = 15
+    end_date: datetime = date_utils.parse_datestring("2019-07-16")
+    pct_test_holdout = 10
 
     test_train_dir = SelectChartZipUploadService.create_learning_set(start_date, end_date, min_samples, pct_gain_sought, trading_days_span, pct_test_holdout, min_price, amount_to_spend)
 
     logger.info(f"Train/Test Dir: {test_train_dir}")
 
-
   def test_foo(self):
-
-    # df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.SMALL)
+    # df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
     file_path = "C:\\Users\\Chris\\workspaces\\data\\financial\\quandl\\tables\\splits\\A.csv"
     df = pd.read_csv(file_path)

@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import math
 import pandas as pd
 from datetime import datetime
 
@@ -84,7 +85,7 @@ class AutoMlGeneralService():
     parent_dir = os.path.join(prediction_dir, "graphed")
 
     categories = ["1", "0"]
-    files_needed = num_files_needed // 2
+    files_needed = math.ceil(num_files_needed/2)
     logger.info(f"files needed {files_needed}; parent_dir: {parent_dir}")
 
     test_dir = os.path.join(prediction_dir, "test_holdout")

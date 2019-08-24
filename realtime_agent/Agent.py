@@ -1,126 +1,13 @@
-import json
-import pickle
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
-from flask import Flask, request, jsonify
-from sklearn.preprocessing import MinMaxScaler
 
-app = Flask(__name__)
+from config import logger_factory
+from realtime_agent.Deep_Evolution_Strategy import Deep_Evolution_Strategy
+
+logger = logger_factory.create_logger(__name__)
 
 window_size = 20
-skip = 1
-layer_size = 500
-output_size = 3
-
-
-def softmax(z):
-  assert len(z.shape) == 2
-  s = np.max(z, axis=1)
-  s = s[:, np.newaxis]
-  e_x = np.exp(z - s)
-  div = np.sum(e_x, axis=1)
-  div = div[:, np.newaxis]
-  return e_x / div
-
-
-def get_state(parameters, t, window_size=20):
-  outside = []
-  d = t - window_size + 1
-  for parameter in parameters:
-    block = (
-      parameter[d: t + 1]
-      if d >= 0
-      else -d * [parameter[0]] + parameter[0: t + 1]
-    )
-    res = []
-    for i in range(window_size - 1):
-      res.append(block[i + 1] - block[i])
-    for i in range(1, window_size, 1):
-      res.append(block[i] - block[0])
-    outside.append(res)
-  return np.array(outside).reshape((1, -1))
-
-
-class Deep_Evolution_Strategy:
-  inputs = None
-
-  def __init__(
-      self, weights, reward_function, population_size, sigma, learning_rate
-  ):
-    self.weights = weights
-    self.reward_function = reward_function
-    self.population_size = population_size
-    self.sigma = sigma
-    self.learning_rate = learning_rate
-
-  def _get_weight_from_population(self, weights, population):
-    weights_population = []
-    for index, i in enumerate(population):
-      jittered = self.sigma * i
-      weights_population.append(weights[index] + jittered)
-    return weights_population
-
-  def get_weights(self):
-    return self.weights
-
-  def train(self, epoch=100, print_every=1):
-    lasttime = time.time()
-    for i in range(epoch):
-      population = []
-      rewards = np.zeros(self.population_size)
-      for k in range(self.population_size):
-        x = []
-        for w in self.weights:
-          x.append(np.random.randn(*w.shape))
-        population.append(x)
-      for k in range(self.population_size):
-        weights_population = self._get_weight_from_population(
-          self.weights, population[k]
-        )
-        rewards[k] = self.reward_function(weights_population)
-      rewards = (rewards - np.mean(rewards)) / (np.std(rewards) + 1e-7)
-      for index, w in enumerate(self.weights):
-        A = np.array([p[index] for p in population])
-        self.weights[index] = (
-            w
-            + self.learning_rate
-            / (self.population_size * self.sigma)
-            * np.dot(A.T, rewards).T
-        )
-      if (i + 1) % print_every == 0:
-        print(
-          'iter %d. reward: %f'
-          % (i + 1, self.reward_function(self.weights))
-        )
-    print('time taken to train:', time.time() - lasttime, 'seconds')
-
-
-class Model:
-  DROPOUT = 0.9
-
-  def __init__(self, input_size, layer_size, output_size):
-    self.weights = [
-      np.random.normal(scale=0.05, size=(input_size, layer_size)),
-      np.random.normal(scale=0.05, size=(layer_size, layer_size)),
-      np.random.normal(scale=0.05, size=(layer_size, output_size)),
-      np.zeros((1, layer_size)),
-      np.zeros((1, layer_size)),
-    ]
-
-  def predict(self, inputs):
-    feed = np.dot(inputs, self.weights[0]) + self.weights[-2]
-    feed = np.dot(feed, self.weights[1]) + self.weights[-1]
-    decision = np.dot(feed, self.weights[2])
-    return decision
-
-  def get_weights(self):
-    return self.weights
-
-  def set_weights(self, weights):
-    self.weights = weights
-
 
 class Agent:
   POPULATION_SIZE = 15
@@ -184,7 +71,7 @@ class Agent:
       timeseries=np.array(self._queue).T.tolist(),
     )
     action, prob = self.act_softmax(state)
-    print(prob)
+    logger.debug(prob)
     if action == 1 and self._scaled_capital >= close:
       self._inventory.append(close)
       self._scaled_capital -= close
@@ -302,7 +189,7 @@ class Agent:
 
     for t in range(0, len(self.trend) - 1, self.skip):
       action, prob = self.act_softmax(state)
-      print(t, prob)
+      logger.debug(t, prob)
 
       if action == 1 and starting_money >= self.trend[t] and t < (len(self.trend) - 1 - window_size):
         inventory.append(self.trend[t])
@@ -310,7 +197,7 @@ class Agent:
         real_starting_money -= self.real_trend[t]
         starting_money -= self.trend[t]
         states_buy.append(t)
-        print(
+        logger.debug(
           'day %d: buy 1 unit at price %f, total balance %f'
           % (t, self.real_trend[t], real_starting_money)
         )
@@ -328,7 +215,7 @@ class Agent:
                    ) * 100
         except:
           invest = 0
-        print(
+        logger.debug(
           'day %d, sell 1 unit at price %f, investment %f %%, total balance %f,'
           % (t, self.real_trend[t], invest, real_starting_money)
         )
@@ -342,57 +229,28 @@ class Agent:
     total_gains = real_starting_money - real_initial_money
     return states_buy, states_sell, total_gains, invest
 
+def get_state(parameters, t, window_size=20):
+  outside = []
+  d = t - window_size + 1
+  for parameter in parameters:
+    block = (
+      parameter[d: t + 1]
+      if d >= 0
+      else -d * [parameter[0]] + parameter[0: t + 1]
+    )
+    res = []
+    for i in range(window_size - 1):
+      res.append(block[i + 1] - block[i])
+    for i in range(1, window_size, 1):
+      res.append(block[i] - block[0])
+    outside.append(res)
+  return np.array(outside).reshape((1, -1))
 
-with open('model.pkl', 'rb') as fopen:
-  model = pickle.load(fopen)
-
-df = pd.read_csv('TWTR.csv')
-real_trend = df['Close'].tolist()
-parameters = [df['Close'].tolist(), df['Volume'].tolist()]
-minmax = MinMaxScaler(feature_range=(100, 200)).fit(np.array(parameters).T)
-scaled_parameters = minmax.transform(np.array(parameters).T).T.tolist()
-initial_money = np.max(parameters[0]) * 2
-
-agent = Agent(model=model,
-              timeseries=scaled_parameters,
-              skip=skip,
-              initial_money=initial_money,
-              real_trend=real_trend,
-              minmax=minmax)
-
-
-@app.route('/', methods=['GET'])
-def hello():
-  return jsonify({'status': 'OK'})
-
-
-@app.route('/inventory', methods=['GET'])
-def inventory():
-  return jsonify(agent._inventory)
-
-
-@app.route('/queue', methods=['GET'])
-def queue():
-  return jsonify(agent._queue)
-
-
-@app.route('/balance', methods=['GET'])
-def balance():
-  return jsonify(agent._capital)
-
-
-@app.route('/trade', methods=['GET'])
-def trade():
-  data = json.loads(request.args.get('data'))
-  return jsonify(agent.trade(data))
-
-
-@app.route('/reset', methods=['GET'])
-def reset():
-  money = json.loads(request.args.get('money'))
-  agent.reset_capital(money)
-  return jsonify(True)
-
-
-if __name__ == '__main__':
-  app.run(host='0.0.0.0', port=8005)
+def softmax(z):
+  assert len(z.shape) == 2
+  s = np.max(z, axis=1)
+  s = s[:, np.newaxis]
+  e_x = np.exp(z - s)
+  div = np.sum(e_x, axis=1)
+  div = div[:, np.newaxis]
+  return e_x / div

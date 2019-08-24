@@ -6,7 +6,7 @@ from services.Eod import Eod
 
 import config
 from config import logger_factory
-from services import chart_service, file_services
+from services import chart_service, file_services, eod_data_service
 from services.BasicSymbolPackage import BasicSymbolPackage
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
@@ -36,7 +36,7 @@ class TestStockService(TestCase):
 
   def test_load_random_stocks(self):
     # Arrange
-    df = EquityUtilService.get_shar_equity_data()
+    df = eod_data_service.get_shar_equity_data()
     expected_num_to_load = 7
 
     unique_symbols = df["ticker"].unique().tolist()
@@ -85,7 +85,7 @@ class TestStockService(TestCase):
 
   def test_get_result_from_date(self):
     # Arrange
-    df = EquityUtilService.get_shar_equity_data(sample_file_size=True)
+    df = eod_data_service.get_shar_equity_data(sample_file_size=True)
     symbol = "AAPL"
     date = date_utils.parse_datestring("2019-06-14")
 
@@ -120,7 +120,7 @@ class TestStockService(TestCase):
   def test_yield_function(self):
     # Arrange
     symbol = "IBM"
-    df = EquityUtilService.get_shar_equity_data()
+    df = eod_data_service.get_shar_equity_data()
 
     df_day_before = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-01") & (df["date"] <= "2013-01-31")]
     date_before = date_utils.parse_datestring("2013-02-01")
@@ -143,8 +143,8 @@ class TestStockService(TestCase):
     min_price = 5.0
     end_date = date_utils.parse_datestring("2019-07-17")
 
-    df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.LARGE)
-    # df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.SMALL)
+    df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.LARGE)
+    # df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
     logger.info(f"Found {len(df['ticker'].unique().tolist())} tickers.")
 

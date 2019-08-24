@@ -4,20 +4,17 @@ from stopwatch import Stopwatch
 
 from config import logger_factory
 from services.AutoMlPredictionService import AutoMlPredictionService
-from services.EquityUtilService import EquityUtilService
 from services.SparkRenderImages import SparkRenderImages
 from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
 
-class ControlPanelService():
+class PredictHoldoutDataService():
 
   @classmethod
   def get_predictions_on_holdout_date(self):
 
-
-
-    yield_date = date_utils.parse_datestring("2019-08-09")
+    yield_date = date_utils.parse_datestring("2019-08-15")
     pct_gain_sought = 1.0
     num_days_to_sample = 1000
     # short_model_id = "ICN5723877521014662275"
@@ -41,18 +38,9 @@ class ControlPanelService():
 
     return image_dir
 
-  @classmethod
-  def split_files(cls):
-    stopwatch = Stopwatch()
-    stopwatch.start()
-    stock_infos = EquityUtilService.split_shar_equity_to_ticker_files()
-    stopwatch.stop()
-
-    logger.info(f"Elapsed: {stopwatch}.")
-
 
 
 
 if __name__ == "__main__":
   logger.info("Run from command line...")
-  ControlPanelService.get_predictions_on_holdout_date()
+  PredictHoldoutDataService.get_predictions_on_holdout_date()

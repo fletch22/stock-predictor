@@ -16,7 +16,7 @@
 ## Table of contents
   * [Models](https://github.com/huseinzol05/Stock-Prediction-Models#models)
   * [Agents](https://github.com/huseinzol05/Stock-Prediction-Models#agents)
-  * [Realtime Agent](realtime-agent)
+  * [Realtime Agent](realtime_agent)
   * [Data Explorations](https://github.com/huseinzol05/Stock-Prediction-Models#data-explorations)
   * [Simulations](https://github.com/huseinzol05/Stock-Prediction-Models#simulations)
   * [Results](https://github.com/huseinzol05/Stock-Prediction-Models#results)
@@ -297,3 +297,20 @@ Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
 
 1. get_todays_merged_shar_data should be modified to get the most recent trading day's merged data. So it would only update if a nonzero
 length file was found in yesterday's records. 
+Status: Done
+
+2. Get CUDA working.
+Status:
+
+3. Get calc for 10 trades in a day working.
+Status:
+
+4. AutoML with PE
+Status:
+
+4. Get lstm-bahdanau working
+Status:
+
+5. Start calc for realtime agent with 100 stocks.
+Status:
+

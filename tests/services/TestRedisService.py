@@ -7,6 +7,7 @@ from stopwatch import Stopwatch
 
 import config
 from config import logger_factory
+from services import eod_data_service
 from services.EquityUtilService import EquityUtilService
 from services.RedisService import RedisService
 from services.StockService import StockService
@@ -68,7 +69,7 @@ class TestRedisService(TestCase):
     # Arrange
     stopwatch = Stopwatch()
     stopwatch.start()
-    df = EquityUtilService.get_todays_merged_shar_data()
+    df = eod_data_service.get_todays_merged_shar_data()
     stopwatch.stop()
     logger.info(f"Elapsed: {stopwatch}")
 

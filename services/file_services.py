@@ -75,5 +75,8 @@ def get_date_modified(file_path):
 def file_modified_today(file_path):
   return datetime.today().timetuple().tm_yday - get_date_modified(file_path).timetuple().tm_yday == 0
 
-def get_ticker_filename(symbol: str):
-  return os.path.join(config.constants.SHAR_SPLIT_EQUITY_PRICES_DIR, f"{symbol}.csv")
+def get_eod_ticker_file_path(symbol: str):
+  return os.path.join(config.constants.SHAR_SPLIT_EQUITY_EOD_DIR, f"{symbol}.csv")
+
+def get_fun_ticker_file_path(symbol: str):
+  return os.path.join(config.constants.SHAR_SPLIT_FUNDAMENTALS_DIR, f"{symbol}.csv")

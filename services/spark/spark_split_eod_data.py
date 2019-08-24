@@ -1,3 +1,5 @@
+from typing import Union
+
 import findspark
 import math
 from ipython_genutils.py3compat import xrange
@@ -19,7 +21,7 @@ def use_spark_to_split(df_sorted: pd.DataFrame):
 
   return symbols_chunked
 
-def transform_symbols_to_spark_request(df: pd.DataFrame, num_slices: int):
+def transform_symbols_to_spark_request(df: pd.DataFrame, num_slices: Union[int, None]):
   symbols = df["ticker"].unique().tolist()
 
   sublist_size = math.ceil(len(symbols) / num_slices)
@@ -53,5 +55,5 @@ def process(symbols):
   for s in symbols:
     df_symbol = df_select_symbols[df_select_symbols['ticker'] == s]
     logger.info(f"Got symbol {s}.")
-    output_path = SparkFiles.get(file_services.get_ticker_filename(s))
+    output_path = SparkFiles.get(file_services.get_eod_ticker_file_path(s))
     df_symbol.to_csv(output_path, index=False)

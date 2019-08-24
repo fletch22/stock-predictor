@@ -1,17 +1,14 @@
 import os
 import random
-import time
 from statistics import mean
 
-import findspark
 from google.cloud import automl_v1beta1 as automl
-from pyspark import SparkContext, SparkFiles
 
 import config
 from config import logger_factory
-from services import file_services, spark_predict
+from services import file_services
+from services.spark import spark_predict
 from services.Eod import Eod
-from services.RedisService import RedisService
 from services.StockService import StockService
 from utils import date_utils
 logger = logger_factory.create_logger(__name__)
@@ -93,13 +90,14 @@ class AutoMlPredictionService():
   def calc_frac_gain(self, aggregate_gain, bet_price, category_actual, category_predicted, close, count, high, initial_investment_amount, low, max_drop, score, sought_gain_frac, symbol, yield_date):
     earned_amount = initial_investment_amount
 
+    if bet_price is None:
+      return count, earned_amount, aggregate_gain
+
     logger.debug(f"Score: {score}; score_threshold: {self.score_threshold}")
     max_drop_price = bet_price - (max_drop * bet_price)
-    logger.info(f"bp: {bet_price}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
+    logger.info(f"bet_price: {bet_price}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
     if score >= self.score_threshold:
       if category_actual == category_predicted:
-        logger.info(f'Getting: {symbol}; {yield_date}')
-
         sought_gain_price = bet_price + (bet_price * sought_gain_frac)
 
         # if low < max_drop_price:
@@ -128,6 +126,6 @@ class AutoMlPredictionService():
       if earned_amount < 0:
         earned_amount = 0
 
-      logger.info(f"{earned_amount} = {former_amount} + {returnAmount}")
+      logger.info(f"Symbol: {symbol}; {former_amount} + {returnAmount} = {earned_amount}")
 
     return count, earned_amount, aggregate_gain

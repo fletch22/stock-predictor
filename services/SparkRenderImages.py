@@ -80,13 +80,21 @@ def process(symbol_info):
   save_dir = symbol_info["save_dir"]
   pct_gain_sought = symbol_info["pct_gain_sought"]
 
-  split_file_path = os.path.join(config.constants.SHAR_SPLIT_EQUITY_PRICES_DIR, f"{symbol}.csv")
+  split_file_path = os.path.join(config.constants.SHAR_SPLIT_EQUITY_EOD_DIR, f"{symbol}.csv")
   file_path_spark = SparkFiles.get(split_file_path)
   df = pd.read_csv(file_path_spark)
 
+  logger.info(f"Last date str (before filter): {df.iloc[-1, :]['date']}")
+
   df_dt_filtered = df[df['date'] <= date_utils.get_standard_ymd_format(yield_date)]
   df_dt_filtered.sort_values(by=['date'], inplace=True)
+
   df = df_dt_filtered.tail(num_days_to_sample)
+  df.sort_values(by=['date'], inplace=True)
+
+  logger.info(f"Calc yield date str: {df.iloc[-1, :]['date']}")
+
+  assert (df.iloc[-1, :]['date'] == yield_date_str)
 
   category, _ = EquityUtilService.calculate_category(df, pct_gain_sought)
 

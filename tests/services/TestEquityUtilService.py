@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import TestCase
 
 from config.logger_factory import logger_factory
+from services import eod_data_service, split_eod_data_to_files_service
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from utils import date_utils
@@ -12,22 +13,22 @@ logger = logger_factory.create_logger(__name__)
 class TestEquityUtilService(TestCase):
 
   def test_find_missing_days(self):
-    df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.SMALL)
+    df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
     end_date = date_utils.parse_datestring("2019-06-14")
     until_date = end_date + timedelta(days=3)
-    EquityUtilService.find_and_download_missing_days(df, until_date)
+    eod_data_service.find_and_download_missing_days(df, until_date)
 
   def test_merge(self):
-    df = EquityUtilService.get_shar_equity_data(SampleFileTypeSize.LARGE)
+    df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.LARGE)
 
-    df_merged = EquityUtilService.merge_shar_equity_price_data(df)
+    df_merged = eod_data_service.merge_shar_equity_price_data(df)
 
     assert(df_merged.shape[0] > df.shape[0])
 
   def test_get_todays_merged_shar_data(self):
     # Arrange
-    df_merged = EquityUtilService.get_todays_merged_shar_data()
+    df_merged = eod_data_service.get_todays_merged_shar_data()
 
     # Assert
     assert(df_merged.shape[0] > 0)
@@ -70,11 +71,15 @@ class TestEquityUtilService(TestCase):
   def test_spark_split_shar_equity_to_ticker_files(self):
     # Arrange
     # Act
-    stock_infos = EquityUtilService.split_shar_equity_to_ticker_files()
+    stock_infos = split_eod_data_to_files_service.split_shar_equity_to_ticker_files()
 
     # Assert
     assert(len(stock_infos) > 0)
 
+  def test_get_tesla(self):
+    # Arrange
+    # Act
+    df = EquityUtilService.get_df_from_ticker_path('tsla', False)
 
 
 

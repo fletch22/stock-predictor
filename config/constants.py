@@ -31,9 +31,13 @@ SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices.cs
 SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_merged.csv")
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medlist.csv")
+SHAR_CORE_FUNDAMENTALS = os.path.join(QUANDL_TBLS_DIR, 'shar_core_fundamentals.csv')
 
-SHAR_SPLIT_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "splits")
-make_dir(SHAR_SPLIT_EQUITY_PRICES_DIR)
+SHAR_SPLIT_EQUITY_EOD_DIR = os.path.join(QUANDL_TBLS_DIR, "splits_eod")
+make_dir(SHAR_SPLIT_EQUITY_EOD_DIR)
+
+SHAR_SPLIT_FUNDAMENTALS_DIR = os.path.join(QUANDL_TBLS_DIR, "splits_fundamentals")
+make_dir(SHAR_SPLIT_FUNDAMENTALS_DIR)
 
 CACHE_DIR = os.path.join(OUTPUT_DIR, "cache")
 make_dir(CACHE_DIR)

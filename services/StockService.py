@@ -7,7 +7,7 @@ from pandas import DataFrame
 
 import config
 from config import logger_factory
-from services import chart_service
+from services import chart_service, eod_data_service
 from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
@@ -50,7 +50,7 @@ class StockService:
 
   @classmethod
   def _get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, sample_file_size: SampleFileTypeSize=SampleFileTypeSize.LARGE, start_date: datetime=None, end_date: datetime=None):
-    df = EquityUtilService.get_shar_equity_data(sample_file_size=sample_file_size)
+    df = eod_data_service.get_shar_equity_data(sample_file_size=sample_file_size)
     df = df.sort_values(["date"])
 
     df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
@@ -255,21 +255,34 @@ class StockService:
 
     logger.info(f"Length of df during calc: {df.shape[0]}")
 
-    bet_price = df.iloc[-2,:][Eod.CLOSE]
-    df_yield_day = df.iloc[-1,:]
+    bet_price = None
+    yield_date = None
+    open = None
+    high = None
+    low = None
+    close = None
+    if df.shape[0] >= 2:
+      bet_price = df.iloc[-2,:][Eod.CLOSE]
+      df_yield_day = df.iloc[-1,:]
 
-    bet_date_str = df.iloc[-2, :]["date"]
-    yield_date_str = df_yield_day["date"]
-    logger.info(f"{symbol}: dates: {bet_date_str}; {yield_date_str}; {bet_price}; {df_yield_day['high']}")
+      bet_date_str = df.iloc[-2, :]["date"]
+      yield_date_str = df_yield_day["date"]
+      yield_date = date_utils.parse_datestring(yield_date_str)
+      logger.info(f"{symbol}: dates: {bet_date_str}; {yield_date_str}; {bet_price}; {df_yield_day['high']}")
+
+      open = df_yield_day["open"]
+      high = df_yield_day["high"]
+      low = df_yield_day["low"]
+      close = df_yield_day[Eod.CLOSE]
 
     return {
       "symbol": symbol,
       "bet_price": bet_price,
-      "date": date_utils.parse_datestring(df_yield_day["date"]),
-      "open": df_yield_day["open"],
-      "high": df_yield_day["high"],
-      "low": df_yield_day["low"],
-      Eod.CLOSE: df_yield_day[Eod.CLOSE],
+      "date": yield_date,
+      "open": open,
+      "high": high,
+      "low": low,
+      Eod.CLOSE: close,
     }
 
   @classmethod
@@ -299,3 +312,33 @@ class StockService:
     df_grouped = df_date_filtered.groupby("ticker")
 
     df_grouped.filter(lambda x: create_image(x, num_days_avail, save_dir))
+
+  @classmethod
+  def get_random_symbols_with_date(cls, num_desired: int, desired_trading_days: int, end_date: datetime):
+    df = eod_data_service.get_todays_merged_shar_data()
+
+    symbols = df['ticker'].unique().tolist()
+
+    random.shuffle(symbols, random.random)
+
+    agg_symbols = []
+    for s in symbols:
+      df = StockService.get_symbol_df(s, translate_file_path_to_hdfs=False)
+      df = df[df['date'] <= date_utils.get_standard_ymd_format(end_date)]
+      df.sort_values(by=['date'], inplace=True)
+
+      # NOTE: 2019-08-18: Bit of trickery; if there exists any records close to the end_date
+      # then we know the available records abuts the end date;
+      if df.shape[0] > 0:
+        last_date_str = df.iloc[-1]['date']
+        last_date = date_utils.parse_datestring(last_date_str)
+        must_exist_date = last_date - timedelta(days=6)
+        must_exist_date_str = date_utils.get_standard_ymd_format(must_exist_date)
+        df_has_end_date = df[df['date'] >= must_exist_date_str]
+
+        if df_has_end_date.shape[0] > 0 and df.shape[0] >= desired_trading_days:
+          agg_symbols.append(s)
+          if len(agg_symbols) >= num_desired:
+            break
+
+    return agg_symbols

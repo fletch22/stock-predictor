@@ -1,6 +1,5 @@
 import os
-import random
-import shutil
+from typing import Dict
 
 import findspark
 from datetime import datetime
@@ -8,13 +7,16 @@ from pyspark import SparkContext
 
 import config
 from config import logger_factory
-from services import chart_service, file_services
+from services import file_services
 from services.AutoMlGeneralService import AutoMlGeneralService
 from services.CloudFileService import CloudFileService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from services.StockService import StockService
-from services.spark_select_and_chart import spark_process_sample_info
-from utils import date_utils
+from services.equities import equity_fundamentals_service
+from services.equities.FullDataEquityFundamentalsService import FullDataEquityFundamentalsService
+from services.equities.FundyMinMax import FundyMinMax
+from services.spark import spark_select_and_chart
+from services.spark.spark_select_and_chart import spark_process
 
 logger = logger_factory.create_logger(__name__)
 
@@ -71,29 +73,18 @@ class SelectChartZipUploadService:
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 
-    sample_info = StockService.get_sample_infos(df_g_filtered, trading_days_span, min_samples, False, start_date, end_date)
+    sample_infos = StockService.get_sample_infos(df_g_filtered, trading_days_span, min_samples, False, start_date, end_date)
 
-    findspark.init()
-    sc = SparkContext.getOrCreate()
-    sc.setLogLevel("INFO")
-    print(sc._jsc.sc().uiWebUrl().get())
+    stock_infos = equity_fundamentals_service.get_scaled_sample_infos(sample_infos, trading_days_span, start_date, end_date, desired_fundamentals=['pe', 'ev', 'eps'])
 
-    symbol_arr = []
-    for symbol in sample_info.keys():
-      s_dict = sample_info[symbol]
-      s_dict['symbol'] = symbol
-      s_dict['trading_days_span'] = trading_days_span
-      s_dict['pct_gain_sought'] = pct_gain_sought
-      s_dict['save_dir'] = graph_dir
-      s_dict['start_date'] = start_date
-      s_dict['end_date'] = end_date
-      symbol_arr.append(s_dict)
+    for sinfo in stock_infos:
+      sinfo['trading_days_span'] = trading_days_span
+      sinfo['pct_gain_sought'] = pct_gain_sought
+      sinfo['save_dir'] = graph_dir
+      sinfo['start_date'] = start_date
+      sinfo['end_date'] = end_date
 
-    rdd = sc.parallelize(symbol_arr)
-
-    rdd.foreach(spark_process_sample_info)
-
-    sc.stop()
+    spark_select_and_chart.do_spark(stock_infos)
 
     return package_path
 

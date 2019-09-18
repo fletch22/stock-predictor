@@ -28,18 +28,22 @@ def zipdir(path, ziph, omit_folders: list=None):
         print(f"{arcname}")
         ziph.write(source_path, arcname)
 
-
-def backup_project():
-  project_path = os.path.join(config.constants.PROJECT_DIR)
-  backup_root = config.constants.BACKUP_ROOT_PATH
-
-  basename = date_utils.format_file_system_friendly_date(datetime.now())
-  backup_file_path = os.path.join(backup_root, f"{basename}.zip")
+def backup_folder(backup_source_dir, backup_dest_root: str, backup_basename: str):
+  os.makedirs(backup_dest_root, exist_ok=True)
+  backup_file_path = os.path.join(backup_dest_root, f"{backup_basename}.zip")
 
   zipf = zipfile.ZipFile(backup_file_path, 'w', zipfile.ZIP_DEFLATED)
 
-  volume = file_services.get_windows_drive_volume_label(backup_root[0])
+  zipdir(backup_source_dir, zipf, omit_folders=["\\venv"])
+  zipf.close()
 
+
+def backup_project():
+  source_dir_project = os.path.join(config.constants.PROJECT_DIR)
+  backup_root = config.constants.BACKUP_ROOT_PATH
+  backup_dest_dirname = os.path.join(backup_root, date_utils.format_file_system_friendly_date(datetime.now()))
+
+  volume = file_services.get_windows_drive_volume_label(backup_root[0])
   logger.info(f"Volume Name: '{volume}'.")
 
   if volume != config.constants.BACKUP_VOLUME_LABEL:
@@ -47,12 +51,14 @@ def backup_project():
 
   stopWatch = Stopwatch()
   stopWatch.start()
-  zipdir(project_path, zipf, omit_folders=["\\venv"])
-  zipf.close()
+
+  backup_folder(source_dir_project, backup_dest_dirname, "project")
+
+  source_dir_data = os.path.join(config.constants.HOME_DIR, "shared_volumes", "sp", "redis")
+  backup_folder(source_dir_data, backup_dest_dirname, "redis_data")
+
   stopWatch.stop()
-
   logger.info(f"Elapsed seconds: {stopWatch}")
-
 
 
 if __name__ == '__main__':

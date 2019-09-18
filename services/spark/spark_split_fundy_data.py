@@ -48,6 +48,6 @@ def process(symbols):
 
   for s in symbols:
     df_symbol = df_select_symbols[df_select_symbols['ticker'] == s]
-    logger.info(f"Got symbol {s}.")
+    logger.info(f"Splitting fundie for {s}.")
     output_path = SparkFiles.get(file_services.get_fun_ticker_file_path(s))
     df_symbol.to_csv(output_path, index=False)

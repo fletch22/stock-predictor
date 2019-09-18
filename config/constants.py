@@ -27,7 +27,7 @@ QUANDL_DIR = os.path.join(FINANCE_DATA_DIR, "quandl")
 QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
 SHAR_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices")
 SHAR_DAILY = os.path.join(QUANDL_TBLS_DIR, "shar_daily.csv")
-SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices.csv")
+SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2019-09-15.csv")
 SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_merged.csv")
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medlist.csv")
@@ -60,6 +60,9 @@ print(f"About to make logging dir (if nec): {LOGGING_DIR}")
 make_dir(LOGGING_DIR)
 LOGGING_FILE_PATH = os.path.join(LOGGING_DIR, 'stock-predictor.log')
 
+LOG_PREFIX="custom_"
+LOGGING_DIR_SPARK=None
+
 CREDENTIALS_ROOT = os.path.join(PROJECT_DIR, "credentials")
 make_dir(CREDENTIALS_ROOT)
 
@@ -78,3 +81,9 @@ with open(quandl_key_path, "r") as f:
 wtd_key_path = os.path.join(CREDENTIALS_ROOT, "world_trading_data_key.txt")
 with open(wtd_key_path, "r") as f:
   WTD_KEY = f.read()
+
+TEST_PACKAGE_FOLDER = os.path.join(CACHE_DIR, "test_package_1")
+make_dir(TEST_PACKAGE_FOLDER)
+
+IS_IN_SPARK_CONTEXT = False
+SPARK_LOGGING_PATH = None

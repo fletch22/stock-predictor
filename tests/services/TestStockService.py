@@ -102,7 +102,8 @@ class TestStockService(TestCase):
     amount_to_spend = 250
     num_days_avail = 2
     min_price = 5.0
-    df_g_filtered = StockService._get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, SampleFileTypeSize.SMALL)
+    volatility_min = 2.79
+    df_g_filtered = StockService._get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, SampleFileTypeSize.SMALL)
 
     min_samples = 33
 
@@ -136,27 +137,57 @@ class TestStockService(TestCase):
 
     assert(eod_data_before[Eod.CLOSE] == eod_data["bet_price"])
 
-  def test_get_stock_history_for_day(self):
+  # def test_get_stock_history_for_day(self):
+  #   # Arrange
+  #   amount_to_spend = 25000
+  #   num_days_avail = 1000
+  #   min_price = 5.0
+  #   end_date = date_utils.parse_datestring("2019-07-17")
+  #
+  #   df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.LARGE)
+  #   # df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
+  #
+  #   logger.info(f"Found {len(df['ticker'].unique().tolist())} tickers.")
+  #
+  #   df_grouped = df.groupby('ticker')
+  #
+  #   df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
+  #
+  #   logger.info(f"df_g_filtered {len(df_g_filtered['ticker'].unique().tolist())} tickers.")
+  #
+  #   parent_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "daily")
+  #   os.makedirs(parent_dir, exist_ok=True)
+  #   save_dir = file_services.create_unique_folder(parent_dir, "bet")
+  #
+  #   # Act
+  #   StockService.get_stock_history_for_day(df_g_filtered, 1000, save_dir, False, end_date)
+
+  def test_get_and_prep_equity_data_one_day(self):
     # Arrange
+    min_price = 5.0
     amount_to_spend = 25000
     num_days_avail = 1000
-    min_price = 5.0
-    end_date = date_utils.parse_datestring("2019-07-17")
-
-    df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.LARGE)
-    # df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
-
-    logger.info(f"Found {len(df['ticker'].unique().tolist())} tickers.")
-
-    df_grouped = df.groupby('ticker')
-
-    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
-
-    logger.info(f"df_g_filtered {len(df_g_filtered['ticker'].unique().tolist())} tickers.")
-
-    parent_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "daily")
-    os.makedirs(parent_dir, exist_ok=True)
-    save_dir = file_services.create_unique_folder(parent_dir, "bet")
+    yield_date_str = "2019-08-15"
+    yield_date = date_utils.parse_datestring(yield_date_str)
 
     # Act
-    StockService.get_stock_history_for_day(df_g_filtered, 1000, save_dir, False, end_date)
+    df = StockService.get_and_prep_equity_data_one_day(amount_to_spend=amount_to_spend,
+                                                       num_days_avail=num_days_avail,
+                                                       min_price=min_price,
+                                                       yield_date=yield_date)
+
+    # Assert
+    df_temp_count = df[df['date'] <= yield_date_str]
+    logger.info(f"df_temp {df_temp_count.shape[0]}")
+    assert(df_temp_count.shape[0] == df.shape[0])
+
+    symbols_with_date = df_temp_count['ticker'].unique().tolist()
+    symbols_with_date.sort()
+
+    logger.info(f"Num symbols with date: {len(symbols_with_date)}")
+    symbols_total = df['ticker'].unique().tolist()
+    symbols_total.sort()
+
+    logger.info(f"Num symbols total: {len(symbols_total)}")
+    assert(len(symbols_total) > 0)
+    assert(symbols_total == symbols_with_date)

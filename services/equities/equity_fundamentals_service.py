@@ -8,6 +8,7 @@ import pandas as pd
 from stopwatch import Stopwatch
 
 from config import logger_factory
+from min_max.ListMinMaxer import ListMinMaxer
 from services import file_services
 from services.equities.EquityFundaDimension import EquityFundaDimension
 from services.spark import spark_get_fundamentals
@@ -15,26 +16,27 @@ from utils import date_utils, math_utils
 
 logger = logger_factory.create_logger(__name__)
 
-
-def get_symbol_data(symbol, bet_date, translate_to_hdfs: bool=False):
+def get_symbol_fundamental_data(symbol, bet_date, translate_to_hdfs: bool=False):
   file_path = get_symbol_file_path(symbol, translate_to_hdfs=translate_to_hdfs)
 
-  df_filtered = None
+  df_sorted = None
   if os.path.exists(file_path):
     df = pd.read_csv(file_path)
 
     bet_date_str = date_utils.get_standard_ymd_format(bet_date)
+    logger.debug(f"bet_date_str: {bet_date_str}")
+
     df_filtered: pd.DataFrame = df[(df['datekey'] <= bet_date_str)]
 
-    df_fin_filtered = df_filtered[(df['dimension'] == EquityFundaDimension.MostRecentQuarterly)]
+    df_fin_filtered = df_filtered[df_filtered['dimension'] == EquityFundaDimension.MostRecentQuarterly]
     if df_fin_filtered.shape[0] == 0:
-      df_fin_filtered = df_filtered[(df['dimension'] == EquityFundaDimension.MostRecentTrailingYear)]
+      df_fin_filtered = df_filtered[(df_filtered['dimension'] == EquityFundaDimension.MostRecentTrailingYear)]
       if df_fin_filtered.shape[0] == 0:
-        df_fin_filtered = df_filtered[(df['dimension'] == EquityFundaDimension.MostRecentAnnual)]
+        df_fin_filtered = df_filtered[(df_filtered['dimension'] == EquityFundaDimension.MostRecentAnnual)]
 
-    df_fin_filtered.sort_values(by=['datekey'], ascending=False, inplace=True)
+    df_sorted = df_fin_filtered.sort_values(by=['datekey'], ascending=False, inplace=False)
 
-  return df_filtered
+  return df_sorted
 
 def get_column_value_in_last_row(df: pd.DataFrame, column_name: str):
   column_value = None
@@ -55,7 +57,7 @@ def get_symbol_file_path(symbol: str, translate_to_hdfs: bool=False):
 
 def get_multiple_values(symbol: str, bet_date: datetime, desired_values: Sequence[str], df: pd.DataFrame=None, translate_to_hdfs=False) -> object:
   if df is None:
-    df = get_symbol_data(symbol, bet_date, translate_to_hdfs=translate_to_hdfs)
+    df = get_symbol_fundamental_data(symbol, bet_date, translate_to_hdfs=translate_to_hdfs)
 
   result = {}
   for dv in desired_values:
@@ -70,44 +72,14 @@ def get_multiple_values(symbol: str, bet_date: datetime, desired_values: Sequenc
   return result
 
 # Returns type example: [{'symbol': 'ibm', 'offset_info': {100: {'pe': 1.4, 'ev': 2.345}, 200: {'pe': 9.888, 'ev': 4.555}}}]
-def get_scaled_sample_infos(sample_infos: Dict, trading_days_span: int, start_date: datetime, end_date: datetime, desired_fundamentals: Sequence[str]):
+def get_scaled_sample_infos(sample_infos: Dict, package_path: str, trading_days_span: int, start_date: datetime, end_date: datetime, desired_fundamentals: Sequence[str]):
   spark_arr = spark_get_fundamentals.convert_to_spark_array(sample_infos, trading_days_span, start_date, end_date, desired_fundamentals)
 
   sample_infos_with_fundies = spark_get_fundamentals.do_spark(spark_arr, num_slices=1)
 
   logger.info(f"sifun: {sample_infos_with_fundies}")
 
-  return get_scaled_fundamentals(sample_infos_with_fundies, 2, 100)
-
-
-# Expects Type example: [{'symbol': 'ibm', 'offset_info': {100: {'pe': 14.15, 'ev': 198593033631.0}, 200: {'pe': 11.957, 'ev': 169182898289.0}}}]
-def _get_min_max_from_sample_infos(fundy_infos: Sequence):
-
-  min_maxs_agg = {}
-  for fund in fundy_infos:
-    offset_infos = fund['offset_info']
-    offsets = offset_infos.keys()
-    for off in offsets:
-      fun = offset_infos[off]
-      for f_key in fun.keys():
-        if f_key not in min_maxs_agg:
-          min_maxs_agg[f_key] = []
-        min_maxs_agg[f_key].append(fun[f_key])
-
-  min_maxs = {}
-  for mm_key in min_maxs_agg.keys():
-    if mm_key not in min_maxs:
-      min_maxs[mm_key] = {}
-    min_maxs[mm_key] = {}
-
-    min_maxs_agg[mm_key] = [x for x in min_maxs_agg[mm_key] if (x is not None and (math.isnan(x) == False))]
-
-    logger.info(f"mm: {min_maxs_agg[mm_key]}")
-
-    min_maxs[mm_key]["min"] = min(min_maxs_agg[mm_key]) if len(min_maxs_agg[mm_key]) > 0 and min_maxs_agg[mm_key] is not None else None
-    min_maxs[mm_key]["max"] = max(min_maxs_agg[mm_key]) if len(min_maxs_agg[mm_key]) > 0 and min_maxs_agg[mm_key] is not None else None
-
-  return min_maxs
+  return get_scaled_fundamentals(sample_infos_with_fundies, package_path)
 
 def _adjust_special_fundamentals(fundamental_key, fundamental_value):
   result = fundamental_value
@@ -124,7 +96,7 @@ def _adjust_special_fundamentals(fundamental_key, fundamental_value):
   return result
 
 # Expects Type example: [{'symbol': 'ibm', 'offset_info': {100: {'pe': 14.15, 'ev': 198593033631.0}, 200: {'pe': 11.957, 'ev': 169182898289.0}}}]
-def get_scaled_fundamentals(fundy_infos: Sequence, lower_bound: float, upper_bound: float):
+def get_scaled_fundamentals(fundy_infos: Sequence, package_path: str):
   stopwatch = Stopwatch()
   stopwatch.start()
   logger.info("Scaling fundamentals...")
@@ -140,7 +112,8 @@ def get_scaled_fundamentals(fundy_infos: Sequence, lower_bound: float, upper_bou
         value = _adjust_special_fundamentals(f_key, value)
         fun[f_key] = value if math_utils.is_neither_nan_nor_none(value) else None
 
-  min_maxs = _get_min_max_from_sample_infos(fundy_infos)
+  # min_maxs = _get_min_max_from_sample_infos(fundy_infos)
+  list_min_maxer = create_min_maxer(fundy_infos, package_path=package_path)
 
   for fundy_key in fundy_infos:
     offset_infos = fundy_key['offset_info']
@@ -148,17 +121,37 @@ def get_scaled_fundamentals(fundy_infos: Sequence, lower_bound: float, upper_bou
     for off in offsets:
       fun = offset_infos[off]
       for f_key in fun.keys():
-        mm = min_maxs[f_key]
-        min = mm['min']
-        max = mm['max']
+        # mm = min_maxs[f_key]
+        # min = mm['min']
+        # max = mm['max']
         value = fun[f_key]
         if value is not None:
-          logger.info(f"Val: {value}; min: {min}; max: {max}")
-          value_scaled = math_utils.scale_value(value, min, max)
-          fun[f_key] = ((upper_bound - lower_bound) * value_scaled) + lower_bound
+          fun[f_key] = list_min_maxer.scale(value, f_key)
+          # logger.info(f"Val: {value}; min: {min}; max: {max}")
+          # value_scaled = math_utils.scale_value(value, min, max)
+          # fun[f_key] = ((upper_bound - lower_bound) * value_scaled) + lower_bound
 
   stopwatch.stop()
 
   logger.info(f"Elapsed time scaling fundamentals: {stopwatch}.")
   return fundy_infos
 
+# Expects Type example: [{'symbol': 'ibm', 'offset_info': {100: {'pe': 14.15, 'ev': 198593033631.0}, 200: {'pe': 11.957, 'ev': 169182898289.0}}}]
+def create_min_maxer(fundy_infos: Sequence, package_path: str):
+  fundies = {}
+  for fundy_key in fundy_infos:
+    offset_infos = fundy_key['offset_info']
+    offsets = offset_infos.keys()
+    for off in offsets:
+      fun = offset_infos[off]
+      for f_key in fun.keys():
+        value = fun[f_key]
+        if value is not None:
+          if f_key not in fundies.keys():
+            fundies[f_key] = []
+          fundies[f_key].append(value)
+
+  list_min_maxer = ListMinMaxer(package_path=package_path)
+  list_min_maxer.persist(fundies)
+
+  return list_min_maxer

@@ -54,6 +54,6 @@ def process(symbols):
   df_select_symbols = df.groupby('ticker').filter(lambda x: x.iloc[0,:]['ticker'] in symbols)
   for s in symbols:
     df_symbol = df_select_symbols[df_select_symbols['ticker'] == s]
-    logger.info(f"Got symbol {s}.")
+    logger.info(f"Splitting for sybmol {s}.")
     output_path = SparkFiles.get(file_services.get_eod_ticker_file_path(s))
     df_symbol.to_csv(output_path, index=False)

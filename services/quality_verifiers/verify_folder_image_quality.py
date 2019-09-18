@@ -27,10 +27,7 @@ def verify():
   files = files[:20]
   for f in files:
     basename = os.path.basename(f)
-    parts = basename.split("_")
-    cat_actual = parts[0]
-    symbol = parts[1]  # .replace("-", "_")
-    date_str = parts[2].split('.')[0]
+    cat_actual, symbol, date_str = get_info_from_file_path(f)
 
     logger.info(f"{symbol}; date: {date_str}")
 
@@ -62,3 +59,12 @@ def verify():
           cat_actual_rt = "0" if gain < sought_gain_frac else "1"
 
           print(f"{basename}; bp: {bet_price}; high: {high}; g: {gain}; fcat: {cat_actual}; scat: {cat_actual_rt}")
+
+def get_info_from_file_path(file_path: str):
+  basename = os.path.basename(file_path)
+  parts = basename.split("_")
+  cat_actual = parts[0]
+  symbol = parts[1]  # .replace("-", "_")
+  date_str = parts[2].split('.')[0]
+
+  return cat_actual, symbol, date_str

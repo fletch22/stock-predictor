@@ -9,6 +9,7 @@ import findspark
 from pyspark import SparkContext, SparkFiles
 import pandas as pd
 import config
+from charts.ChartType import ChartType
 from config import logger_factory
 from services import file_services, chart_service, eod_data_service
 from services.CloudFileService import CloudFileService
@@ -73,7 +74,7 @@ class TestSelectChartZipUploadService(TestCase):
     pct_gain_sought = 1.0
     num_days_to_sample = 1000
 
-    df, image_dir = SparkRenderImages.render_train_test_day(yield_date, pct_gain_sought, num_days_to_sample)
+    df, package_path, image_dir = SparkRenderImages.render_train_test_day(yield_date, pct_gain_sought, num_days_to_sample, max_symbols=2000)
 
     # Assert
     num_files = len(file_services.walk(image_dir))
@@ -88,10 +89,13 @@ class TestSelectChartZipUploadService(TestCase):
     min_samples = 120000
     pct_gain_sought = 1.0
     start_date: datetime = None  # date_utils.parse_datestring("2015-07-23")
-    end_date: datetime = date_utils.parse_datestring("2019-07-16")
+    end_date: datetime = None # date_utils.parse_datestring("2019-09-06")
     pct_test_holdout = 10
+    chart_type = ChartType.Neopolitan
+    volatility_min = 2.79
 
-    test_train_dir = SelectChartZipUploadService.create_learning_set(start_date, end_date, min_samples, pct_gain_sought, trading_days_span, pct_test_holdout, min_price, amount_to_spend)
+    test_train_dir = SelectChartZipUploadService.create_learning_set(start_date, end_date, min_samples, pct_gain_sought, trading_days_span,
+                                                                     pct_test_holdout, min_price, amount_to_spend, chart_type, volatility_min)
 
     logger.info(f"Train/Test Dir: {test_train_dir}")
 

@@ -1,6 +1,8 @@
+import os
 from datetime import datetime
 from unittest import TestCase
 
+import config
 from config import logger_factory
 from services.equities import equity_fundamentals_service
 
@@ -88,6 +90,19 @@ class TestEquityFundamentalsService(TestCase):
     assert(result_1 == -100)
     assert (result_2 == 200)
     assert (result_3 == 50)
+
+  def test_create_min_max_scalers(self):
+    # Arrange
+    fundy_infos = [{'symbol': 'ibm', 'offset_info': {100: {'pe': 14.15, 'ev': 198593033631.0}, 200: {'pe': 11.957, 'ev': 169182898289.0}}}]
+    package_path = os.path.join(config.constants.TEST_PACKAGE_FOLDER)
+
+    # Act
+    list_min_maxer = equity_fundamentals_service.create_min_maxer(fundy_infos=fundy_infos, package_path=package_path)
+
+    scaled_value = list_min_maxer.scale(14.15, 'pe')
+
+    # Assert
+    assert(scaled_value == 1.0)
 
 
 

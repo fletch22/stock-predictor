@@ -7,10 +7,8 @@ from stopwatch import Stopwatch
 
 import config
 from config import logger_factory
-from services import eod_data_service
-from services.EquityUtilService import EquityUtilService
 from services.RedisService import RedisService
-from services.StockService import StockService
+from services.spark import spark_predict
 
 logger = logger_factory.create_logger(__name__)
 
@@ -65,30 +63,13 @@ class TestRedisService(TestCase):
     assert(duration_read < 125)
     logger.info(f"Duration write:read - {duration_write}: {duration_read}")
 
-  def test_dataframe_time(self):
-    # Arrange
-    stopwatch = Stopwatch()
-    stopwatch.start()
-    df = eod_data_service.get_todays_merged_shar_data()
-    stopwatch.stop()
-    logger.info(f"Elapsed: {stopwatch}")
-
+  def test_foo(self):
     redis_service = RedisService()
-    key = "test"
+    short_model_id = "ICN2174544806954869914"
+    image_path = "C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\process_2019-09-05_19-18-00-268.24\\graphed\\1_CHMG_2019-07-18.png"
 
-    # Set
-    stopwatch.reset()
-    stopwatch.start()
-    redis_service.write_df(key, df)
-    stopwatch.stop()
+    key_pred = spark_predict.get_prediction_cache_key(image_path, short_model_id)
 
-    logger.info(f"Elapsed: {stopwatch}")
+    thing = redis_service.read(key_pred)
 
-    stopwatch.reset()
-    stopwatch.start()
-    df = redis_service.read_df(key)
-    stopwatch.stop()
-
-    logger.info(f"Elapsed: {stopwatch}")
-
-
+    print(thing)

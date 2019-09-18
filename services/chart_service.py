@@ -12,22 +12,22 @@ from config import logger_factory
 logger = logger_factory.create_logger(__name__)
 
 
-def plot_and_save_for_learning(df, save_dir, category):
-  df_sorted = df.sort_values(by=['date'], inplace=False)
-
-  indices = get_random_assembly_indices_from_df(df)
-  logger.info(f"I: {indices}")
-
-  count = 0
-  for ndx in indices:
-    df_assembly = df_sorted[df_sorted["assembly_index"] == ndx]
-
-    bet_date = df_assembly["date"].tolist()[-1]
-    symb = df_assembly["ticker"].tolist()[-1]
-
-    save_data_as_chart(symb, category, df_assembly, bet_date, save_dir)
-
-    count += 1
+# def plot_and_save_for_learning(df, save_dir, category):
+#   df_sorted = df.sort_values(by=['date'], inplace=False)
+#
+#   indices = get_random_assembly_indices_from_df(df)
+#   logger.info(f"I: {indices}")
+#
+#   count = 0
+#   for ndx in indices:
+#     df_assembly = df_sorted[df_sorted["assembly_index"] == ndx]
+#
+#     bet_date = df_assembly["date"].tolist()[-1]
+#     symb = df_assembly["ticker"].tolist()[-1]
+#
+#     save_data_as_chart(symb, category, df_assembly, bet_date, save_dir)
+#
+#     count += 1
 
 
 def get_random_assembly_indices_from_df(df, amount=0):
@@ -39,13 +39,6 @@ def get_random_assembly_indices_from_df(df, amount=0):
     rand_symbols = unique_indices[:amount]
 
   return rand_symbols
-
-
-def clean_and_save_chart(df: pd.DataFrame, save_dir: str):
-  symb = df.iloc[0, :]["ticker"]
-  yield_date_str = df.iloc[-1, :]['date']
-
-  save_data_as_chart_no_category(symb, df, yield_date_str, save_dir)
 
 
 def save_data_as_chart(symbol: str, category: str, df: pd.DataFrame, yield_date_str: str, save_dir: str, translate_save_path_hdfs=False):
@@ -79,7 +72,6 @@ def save_vanilla_chart_to_filename(df_assembly: pd.DataFrame, save_dir: str, fil
 
 def save_decorated_chart_to_filename(df: pd.DataFrame, fundy: dict, category: str, symbol: str, yield_date_str: str,
                                      save_dir: str, translate_save_path_hdfs=False):
-
   plt = render_decorated_chart(df, fundy=fundy)
 
   filename = f"{category}_{symbol}_{yield_date_str}.png"
@@ -89,6 +81,7 @@ def save_decorated_chart_to_filename(df: pd.DataFrame, fundy: dict, category: st
   logger.info(f"Save to {save_path}")
 
   plt.savefig(save_path, bbox_inches='tight', pad_inches=0, transparent=False)
+
 
 def render_decorated_chart(df_assembly: pd.DataFrame, fundy: dict):
   Y = df_assembly['high'].values[:-1]
@@ -107,7 +100,7 @@ def render_decorated_chart(df_assembly: pd.DataFrame, fundy: dict):
   ev = get_fund_for_chart(fundy, 'ev')
   eps = get_fund_for_chart(fundy, 'eps')
 
-  metrics = [100, eps, pe, ev]
+  metrics = [1.1, eps, pe, ev]
   y_pos = np.arange(len(metrics))
   performance = metrics
 
@@ -119,15 +112,19 @@ def render_decorated_chart(df_assembly: pd.DataFrame, fundy: dict):
 
   return plt
 
+
 # Expects example: { 'pe': 18.0; 'ev': 1.2345564342 }
 def get_fund_for_chart(fund_info, fund_key):
   value = 0
   if fund_key in fund_info.keys():
     value = fund_info[fund_key]
     if value is None:
-      value = 1 # A zero value forces the other bars to expand overmuch.
+      value = .1  # A zero value forces the other bars to expand overmuch.
+    else:
+      value += .1
 
   return value
+
 
 def add_image_to_plot(plt):
   im = Image.open('/home/jofer/logo.png')

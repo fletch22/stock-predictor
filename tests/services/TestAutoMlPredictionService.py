@@ -1,74 +1,86 @@
 import os
-from datetime import timedelta
-import random
+import statistics
 from unittest import TestCase
 
-import math
 import pandas as pd
 from stopwatch import Stopwatch
-from statistics import mean
 
 import config
 from config import logger_factory
-from services import file_services
 from services.AutoMlPredictionService import AutoMlPredictionService
-from services.EquityUtilService import EquityUtilService
 from services.RealtimeEquityPriceService import RealtimeEquityPriceService
 from services.quality_verifiers import verify_folder_image_quality
 from utils import date_utils
 from utils.CalculationPackage import CalculationPackage
 from utils.YieldCalculator import YieldCalculator
-import statistics
 
 logger = logger_factory.create_logger(__name__)
-
 
 
 class TestAutoMlPredictionService(TestCase):
 
   def test_predict_and_calculate(self):
     # Arrange
-    short_model_id = "ICN7780367212284440071"  # fut_prof 68%
+    # Without vol filter: Accuracy: 0.7396694214876033; total: 242; mean frac: -0.000855431676463572; total: 7269.49249471177
+    # With filter volatility_min: 24; score_threshold = .55: Accuracy: 0.8090909090909091; total: 110; mean frac: 0.0023177019723329886; total: 12623.972695314542
+
+    # short_model_id = "ICN7780367212284440071"  # fut_prof 68%
     # short_model_id = "ICN5723877521014662275" # closeunadj
-    # package_folder = "process_2019-08-04_09-08-53-876.24"
-    # package_folder = "process_2019-08-06_21-07-03-123.23"
-    # package_folder = "process_2019-08-07_08-27-02-182.53"
-    # package_folder = "process_2019-08-07_21-01-14-275.25"
-    # package_folder = "process_2019-08-08_21-28-43-496.67"
-    # data_cache_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "selection_packages", "SelectChartZipUploadService", package_folder)
-    # image_dir = os.path.join(data_cache_dir, "test_holdout")
+    # short_model_id = "ICN2013469796611448097" # multi3 58.7%
+    # short_model_id = "ICN7558148891127523672"  # multi3 57.5%
+    # short_model_id = "ICN2174544806954869914"  # multi3 57.5%
+    # short_model_id = "ICN2383257928398147071" # vol_eq 65%
+    short_model_id = "ICN200769567050768296"  # voleq_rec Sept %
 
-    # package_folder = "tsczuz__2019-08-13_07-44-49-19.99"  # 2019-07-17 .56 -> -.36
-    # package_folder = "tsczuz__2019-08-13_08-02-50-934.15"  # 2019-07-18 .56 -> -.07
-    # package_folder = "tsczuz__2019-08-13_23-05-25-314.13"  # 2019-07-19 .56 -> .1
-    # package_folder = "tsczuz__2019-08-13_08-19-29-765.36"  # 2019-07-22 .56 -> .14
-    # package_folder = "tsczuz__2019-08-13_08-34-11-93.47"  # 2019-07-23 .56 -> .39
-    # package_folder = "tsczuz__2019-08-13_19-33-09-981.39"  # 2019-07-24 .56 -> .48
-    # package_folder = "tsczuz__2019-08-13_19-50-20-163.87"  # 2019-07-25 .56 -> -.09
-    # package_folder = "tsczuz__2019-08-14_20-12-46-174.24"  # 2019-07-26 .56 -> .31
-    # package_folder = "tsczuz__2019-08-13_20-15-02-219.27"  # 2019-07-29 .56 -> -.18
-    # package_folder = "tsczuz__2019-08-13_20-32-05-80.24" #2019-07-30 .56 -> .33
-    # package_folder = "tsczuz__2019-08-13_21-05-59-524.71"  # 2019-07-31 .56 -> .31
-    # package_folder = "tsczuz__2019-08-13_21-16-52-909.21" # 2019-08-01 .56 -> .08
-    # package_folder = "tsczuz__2019-08-14_20-54-17-876.95" # 2019-08-02 .56 -> -.11
-    # package_folder = "tsczuz__2019-08-14_22-01-55-582.07"  # 2019-08-05 .56 -> -.31
-    # package_folder = "tsczuz__2019-08-14_22-27-57-370.67"  # 2019-08-06 .56 -> .89
-    # package_folder = "tsczuz__2019-08-14_22-41-04-602.12"  # 2019-08-07 .56 -> .03
-    # package_folder = "tsczuz__2019-08-14_22-56-11-292.63"  # 2019-08-08 .56 -> .68
-    # package_folder = "tsczuz__2019-08-14_23-08-01-480.4"  # 2019-08-09 .56 -> -.71
-    package_folder = "tsczuz__2019-08-16_15-37-00-100.37"  # 2019-08-12 .56 -> -.98
-    # package_folder = ""  # 2019-08-13 .56 -> -.47
-    # package_folder = ""  # 2019-08-13 .56 -> -.52
+    # package_folder = "process_2019-09-09_22-14-56-0.37" # vanilla chart 8-15-2019: -0.004937923352530126
+    # package_folder = "process_2019-09-14_11-47-31-845.11" # vol_eq
+    package_folder = "process_2019-09-15_22-19-18-716.64"  # voleq_rec
+    # package_folder = "process_2019-09-15_17-14-26-988.57" # 8-30 .0026
+    # package_folder = "process_2019-09-15_17-10-30-37.45" # 8-29 .0030
+    # package_folder = "process_2019-09-15_17-06-36-672.94"  # 8-28 .0050
+    # package_folder = "process_2019-09-15_17-03-04-8.06" # 8-27 -0.0019
+    # package_folder = "process_2019-09-15_14-02-07-600.9"  # 8-23  -0.0120
+    # package_folder = "process_2019-09-15_13-58-15-340.5"  # 8-22   -0.0018
+    # package_folder = "process_2019-09-15_13-54-19-578.46"  # 8-21   0.0023
+    # package_folder = "process_2019-09-15_13-50-10-391.36"  # 8-20  -0.00198
+    # package_folder = "process_2019-09-15_13-45-52-578.17"  # 8-19   0.0063
+    # package_folder = "process_2019-09-15_13-39-32-870.98"  # 8-14  -0.0150
+    # package_folder = "process_2019-09-15_16-59-07-574.45"  # 8-09 -0.0038
+    # package_folder = "process_2019-09-15_16-55-31-225.99" # 8-08  0.0052
+    # package_folder = "process_2019-09-15_16-51-55-456.24"  # 8-07 -0.00094
+    # package_folder = "process_2019-09-15_16-48-14-245.38"  # 8-06 0.0063
+    # package_folder = "process_2019-09-15_16-44-44-97.67"  # 8-05 -0.0196
+    # package_folder = "process_2019-09-15_16-41-08-259.13"  # 8-02 -0.0057
+    # package_folder = "process_2019-09-15_16-37-38-928.1"  # 8-01 -0.0021
+    # package_folder = "process_2019-09-15_16-34-06-17.38"  # 7-31 -0.00096
+    # package_folder = "process_2019-09-15_16-30-25-885.47"  # 7-30 0.0015
+    # package_folder = "process_2019-09-15_16-26-47-851.12"  # 7-29 -0.0018
+    # package_folder = "process_2019-09-15_16-23-03-394.13" # 7-26 0.00468
+    # package_folder = "process_2019-09-15_16-19-05-587.39"  # 7-25 -0.0062
+    # package_folder = "process_2019-09-15_16-15-23-25.45"  # 7-24  0.0022
+    # package_folder = "process_2019-09-15_16-11-40-753.51"  # 7-23  0.00349
+    # package_folder = "process_2019-09-15_16-07-42-827.66"  # 7-22  0.0015
+    # package_folder = "process_2019-09-15_16-04-00-588.58"  # 7-19  -0.0027
+    # package_folder = "process_2019-09-15_16-00-11-48.41"  # 7-18  -0.0012
+    # package_folder = "process_2019-09-15_15-56-00-356.66"  # 7-17  -0.0022
 
-    data_cache_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "test_one_day")
-    image_dir = os.path.join(data_cache_dir, package_folder)
-    auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=data_cache_dir, score_threshold=.56)
+    # package_folder = "process_2019-09-08_06-08-31-603.66" # 8-15-2019 24h multi3 57.5%
+    # package_folder = "process_2019-08-06_22-46-56-230.65" # vanilla chart
+
+    data_cache_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "selection_packages", "SelectChartZipUploadService", package_folder)
+    image_dir = os.path.join(data_cache_dir, "test_holdout")
+    # image_dir = os.path.join(data_cache_dir, "graphed")
+
     sought_gain_frac = .01
+    score_threshold = .50
+    purge_cached = False
+
+    auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=data_cache_dir, score_threshold=score_threshold)
 
     # Act
     stopwatch = Stopwatch()
     stopwatch.start()
-    auto_ml_service.predict_and_calculate(image_dir, sought_gain_frac, max_files=3000, purge_cached=False)
+    auto_ml_service.predict_and_calculate(package_folder, image_dir, sought_gain_frac, max_files=10000, purge_cached=purge_cached)
     stopwatch.stop()
 
     logger.info(f"Elapsed time: {round(stopwatch.duration / 60, 2)} minutes")
@@ -77,25 +89,30 @@ class TestAutoMlPredictionService(TestCase):
     assert (True)
 
   def test_fast_calc(self):
-    short_model_id = "ICN7780367212284440071"
+    # scores_ICN2174544806954869914_2019-07-17_2019-08-15.csv
+    # short_model_id = "ICN7780367212284440071"
+    # short_model_id = "ICN2174544806954869914"
+    short_model_id = "ICN2383257928398147071" # vol_eq_09_14_11_47_31_845_11 65%
     start_date_str = "2019-07-17"
-    end_date_str = "2019-08-15"
-    end_snip_str = "2019-08-15"
-    score_threshold_low = .50
-    score_threshold_high = .62
+    end_date_str = "2019-09-06"
+    end_snip_str = "2019-09-06"
+    score_threshold_low = .56
+    # score_threshold_high = .62
     initial_investment_amount = 10000
-    sought_gain_frac = .02
+    sought_gain_frac = .01
     max_price_drop_frac = None
+    bets_per_day = 1
 
     file_path = os.path.join(config.constants.CACHE_DIR, f"scores_{short_model_id}_{start_date_str}_{end_date_str}.csv")
 
     df = pd.read_csv(file_path)
 
+    agg_success_ratio = []
     agg_roi_pct = []
-    for i in range(1000):
+    for i in range(100):
       df = df.sample(frac=1).reset_index(drop=True)
 
-      df_g = prefilter_bets(df, 10, score_threshold_low, end_snip_str)
+      df_g = prefilter_bets(df, bets_per_day, score_threshold_low, end_snip_str)
 
       df_g.sort_values(by=['date'], inplace=True)
 
@@ -145,14 +162,19 @@ class TestAutoMlPredictionService(TestCase):
         if ongoing_balance_amt <= 0:
           break
 
-      roi_pct = ((ongoing_balance_amt - initial_investment_amount)/initial_investment_amount) * 100
+      roi_pct = ((ongoing_balance_amt - initial_investment_amount) / initial_investment_amount) * 100
       agg_roi_pct.append(roi_pct)
 
-      success_ratio = round(count_gainers/count_predicted, 2)
-      logger.info(f"Threshold: {score_threshold_low}; hits/total: {count_gainers}/{count_predicted} ({success_ratio}); roi: {roi_pct}%")
+      if count_predicted > 0:
+        success_ratio = round(count_gainers / count_predicted, 2)
+        agg_success_ratio.append(success_ratio)
 
-    logger.info(f"agg mean roi pct: {round(statistics.mean(agg_roi_pct), 2)}%")
+        logger.info(f"Threshold: {score_threshold_low}; hits/total: {count_gainers}/{count_predicted} ({success_ratio}); roi: {roi_pct}%")
 
+    if len(agg_roi_pct) > 0:
+      logger.info(f"agg mean roi pct: {round(statistics.mean(agg_roi_pct), 2)}%; average success: {round(statistics.mean(agg_success_ratio), 2)}")
+    else:
+      logger.info("No results.")
 
   def test_quality_by_df(self):
     sought_gain_frac = .01
@@ -166,7 +188,7 @@ class TestAutoMlPredictionService(TestCase):
     def filter(df):
       df.sort_values(by="date", inplace=True)
 
-      bet_row = df.iloc[0,:]
+      bet_row = df.iloc[0, :]
       symbol = bet_row['ticker']
 
       print(symbol)
@@ -203,7 +225,8 @@ class TestAutoMlPredictionService(TestCase):
     df.groupby("ticker").filter(lambda x: filter(x))
 
   def test_image_folder_quality(self):
-      verify_folder_image_quality.verify()
+    verify_folder_image_quality.verify()
+
 
 def prefilter_bets(df: pd.DataFrame, num_bets_per_day: int, score_threshold_low: float, end_date_str: str):
   def top_values(x):
@@ -215,7 +238,5 @@ def prefilter_bets(df: pd.DataFrame, num_bets_per_day: int, score_threshold_low:
     if x.shape[0] >= num_bets_per_day:
       x = x.tail(num_bets_per_day)
     return x
+
   return df.groupby('date').apply(lambda x: top_values(x)).reset_index(drop=True)
-
-
-

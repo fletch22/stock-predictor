@@ -50,6 +50,7 @@ def do_spark(spark_arr: Sequence, num_slices=None):
 
 
 def spark_process_sample_info(symbol_info: Dict) -> Dict:
+  translate_to_hdfs = True
   logger.info(f"Symbol_info: {symbol_info}")
 
   symbol = symbol_info["symbol"]
@@ -61,9 +62,11 @@ def spark_process_sample_info(symbol_info: Dict) -> Dict:
   end_date = symbol_info["end_date"]
   desired_fundamentals = symbol_info['desired_fundamentals']
 
-  df = EquityUtilService.get_df_from_ticker_path(symbol, True)
+  df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs)
   df_sorted = df.sort_values(by=['date'], inplace=False)
   df_date_filtered = StockService.filter_dataframe_by_date(df_sorted, start_date, end_date)
+
+  logger.info(f"Size df: {df_date_filtered.shape[0]}")
 
   fundamentals = {
     "symbol": symbol,
@@ -72,12 +75,21 @@ def spark_process_sample_info(symbol_info: Dict) -> Dict:
   offset_info = fundamentals['offset_info']
 
   for start_offset in offsets:
+    logger.info(f'StartOffset: {start_offset}')
+
     df_offset = df_date_filtered.tail(df_date_filtered.shape[0] - start_offset).head(trading_days_span)
 
+    logger.info(f"df_offset length: {df_offset.shape[0]}")
+
     bet_date_str = df_offset.iloc[-2]['date']
+
+    logger.info(f"bet date: {bet_date_str}")
+
     bet_date = date_utils.parse_datestring(bet_date_str)
 
-    fundies = equity_fundamentals_service.get_multiple_values(symbol, bet_date, desired_fundamentals, df=None, translate_to_hdfs=True)
+    fundies = equity_fundamentals_service.get_multiple_values(symbol, bet_date, desired_fundamentals, df=None, translate_to_hdfs=translate_to_hdfs)
+
+    logger.debug(f"fundies: {fundies}")
 
     offset_info[start_offset] = fundies
 

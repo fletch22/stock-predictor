@@ -1,4 +1,6 @@
+import os
 import time
+from typing import Sequence
 
 import findspark
 from google.cloud import automl
@@ -12,7 +14,7 @@ from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
 
-def get_spark_results(image_info):
+def get_spark_results(image_info:Sequence[dict], task_dir:str):
   findspark.init()
   sc = SparkContext.getOrCreate()
   sc.stop()
@@ -23,6 +25,7 @@ def get_spark_results(image_info):
 
   rdd = sc.parallelize(image_info, numSlices=6)
 
+  config.constants.LOGGING_DIR_SPARK = os.path.join(task_dir, "logs")
   results = rdd.map(spark_category_predict).collect()
 
   sc.stop()
@@ -36,6 +39,8 @@ def spark_category_predict(image_info):
   category_actual = image_info["category_actual"]
   score_threshold = image_info["score_threshold"]
   purge_cached = image_info["purged_cached"]
+
+  logger.info(f"i: {image_path}; s: {short_model_id}")
 
   key_pred = get_prediction_cache_key(image_path, short_model_id)
   redis_service = RedisService()

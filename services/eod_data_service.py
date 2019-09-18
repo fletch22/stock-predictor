@@ -48,7 +48,7 @@ def merge_shar_equity_price_data(df_base: pd.DataFrame):
     df_supp = pd.read_csv(supp)
     df_supp.sort_values(by=sort_crit, inplace=True)
 
-    df_merged = pd.concat([df_merged, df_supp], ignore_index=False)
+    df_merged = pd.concat([df_merged, df_supp], ignore_index=False, sort=False)
 
     logger.info(f"df_merged size: {df_merged.shape[0]}")
 

@@ -1,5 +1,7 @@
 import os
 import random
+import statistics
+from datetime import datetime
 from statistics import mean
 
 from google.cloud import automl_v1beta1 as automl
@@ -7,10 +9,12 @@ from google.cloud import automl_v1beta1 as automl
 import config
 from config import logger_factory
 from services import file_services
-from services.spark import spark_predict
 from services.Eod import Eod
+from services.EquityUtilService import EquityUtilService
 from services.StockService import StockService
+from services.spark import spark_predict
 from utils import date_utils
+
 logger = logger_factory.create_logger(__name__)
 
 
@@ -26,7 +30,7 @@ class AutoMlPredictionService():
     self.package_dir = package_dir
     self.short_model_id = short_model_id
 
-  def predict_and_calculate(self, image_dir: str, sought_gain_frac: float, max_files=-1, purge_cached:bool=False):
+  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, max_files=-1, purge_cached: bool = False):
     file_paths = file_services.walk(image_dir)
     random.shuffle(file_paths, random.random)
 
@@ -36,20 +40,22 @@ class AutoMlPredictionService():
     # Act
     image_info = []
     for f in file_paths:
-      basename = os.path.basename(f)
-      basename_parts = basename.split("_")
-      category_actual = basename_parts[0]
-      symbol = basename_parts[1]
+      category_actual, symbol, yield_date_str = EquityUtilService.get_info_from_file_path(f)
+      yield_date = date_utils.parse_datestring(yield_date_str)
 
-      image_info.append({"category_actual": category_actual,
-                         "symbol": symbol,
-                         "file_path": f,
-                         "score_threshold": self.score_threshold,
-                         "short_model_id": self.short_model_id,
-                         "purged_cached": purge_cached
-                         })
+      start_date = date_utils.parse_datestring('2019-07-17')
 
-    results = spark_predict.get_spark_results(image_info)
+      if yield_date > start_date:
+        logger.info(f"{symbol} using yield date {yield_date_str}")
+        image_info.append({"category_actual": category_actual,
+                           "symbol": symbol,
+                           "file_path": f,
+                           "score_threshold": self.score_threshold,
+                           "short_model_id": self.short_model_id,
+                           "purged_cached": purge_cached,
+                           })
+
+    results = spark_predict.get_spark_results(image_info, task_dir)
 
     logger.info(f"Results: {len(results)}")
 
@@ -77,27 +83,36 @@ class AutoMlPredictionService():
       category_actual = r["category_actual"]
       category_predicted = r["category_predicted"]
       symbol = r["symbol"]
-      yield_date = r["date"]
+      yield_date_str = r["date"]
+      open = eod_info['open']
 
-      count_yielded, invest_amount, aggregate_gain = self.calc_frac_gain(aggregate_gain, bet_price, category_actual, category_predicted, close, count_yielded, high, invest_amount, low, max_drop, score, sought_gain_frac, symbol, yield_date)
+      count_yielded, invest_amount, aggregate_gain = self.calc_frac_gain(aggregate_gain, bet_price, category_actual, category_predicted, open, high, low, close, count_yielded, invest_amount, max_drop, score,
+                                                                         sought_gain_frac, symbol, date_utils.parse_datestring(yield_date_str))
 
     for n in aggregate_gain:
       logger.info(n)
 
     total_samples = len(aggregate_gain)
-    logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean(aggregate_gain)}; total: {invest_amount}")
+    if total_samples > 0:
+      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean(aggregate_gain)}; total: {invest_amount}")
+    else:
+      logger.info("No samples to calculate.")
 
-  def calc_frac_gain(self, aggregate_gain, bet_price, category_actual, category_predicted, close, count, high, initial_investment_amount, low, max_drop, score, sought_gain_frac, symbol, yield_date):
+  def calc_frac_gain(self, aggregate_gain, bet_price, category_actual: str, category_predicted: str, open: float, high: float, low:float, close: float, count: int, initial_investment_amount: float, max_drop: float, score: float, sought_gain_frac: float, symbol: str, yield_date: datetime):
     earned_amount = initial_investment_amount
 
     if bet_price is None:
       return count, earned_amount, aggregate_gain
 
-    logger.debug(f"Score: {score}; score_threshold: {self.score_threshold}")
+    logger.info(f"{symbol} Yield Date: {date_utils.get_standard_ymd_format(yield_date)} Score: {score}; score_threshold: {self.score_threshold}")
     max_drop_price = bet_price - (max_drop * bet_price)
-    logger.info(f"bet_price: {bet_price}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
+    logger.info(f"\tbet_price: {bet_price}; open: {open}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
     if score >= self.score_threshold:
-      if category_actual == category_predicted:
+      if open > bet_price:
+        frac_return = (open - bet_price) / bet_price
+        aggregate_gain.append(frac_return)
+        count += 1
+      elif category_actual == category_predicted:
         sought_gain_price = bet_price + (bet_price * sought_gain_frac)
 
         # if low < max_drop_price:
@@ -126,6 +141,8 @@ class AutoMlPredictionService():
       if earned_amount < 0:
         earned_amount = 0
 
-      logger.info(f"Symbol: {symbol}; {former_amount} + {returnAmount} = {earned_amount}")
+      logger.info(f"\t{former_amount} + {returnAmount} = {earned_amount}")
 
     return count, earned_amount, aggregate_gain
+
+

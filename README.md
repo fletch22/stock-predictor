@@ -293,24 +293,54 @@ Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
         
             Will upgrade pyspark to 2.4.3-py_0, py4j to 0.10.7-py36_0
             
+## Jobs:
+
+a.cmd - Create VirtualEnv
+   
+b.cmd - Create backup
+
+mls.cmd - Make learning dataset
+
+daily_merge_data_and_split.cmd - Downloads and splits Equity EOD data by symbol.
+
+phd.cmd - Test holdout images for one day against one model
+
+scp.cmd - Collect predictions for date range for one model
+
+sedft.cmd - Get merged EOD data and split files into symbols.
+
+sefs.cmd - Split pre-downloaded equity fundamentals files into individual symbol files.
+
+pac.cmd - Predict and Calculate using a folder of images and model ID. 
+
+# Calculating Test Holdout
+
+    First run phd on every day.
+    
+    Then collect folders and run scp.
+    
+    Then run 'test_fast_calc' using score csv
+            
 ## TODO:
 
 1. get_todays_merged_shar_data should be modified to get the most recent trading day's merged data. So it would only update if a nonzero
-length file was found in yesterday's records. 
+length file was found in yesterday's records.
 Status: Done
 
 2. Get CUDA working.
-Status:
+Status: Done
 
 3. Get calc for 10 trades in a day working.
-Status:
+Status: Done
 
 4. AutoML with PE
-Status:
+Status: Done
 
 4. Get lstm-bahdanau working
 Status:
 
 5. Start calc for realtime agent with 100 stocks.
 Status:
+
+6. Good performance on test_predict_and_calculate (mixing model with diff rendered chart)
 

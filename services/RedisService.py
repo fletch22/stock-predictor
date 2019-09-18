@@ -1,3 +1,4 @@
+import codecs
 import json
 import pickle
 import zlib
@@ -37,13 +38,15 @@ class RedisService:
     return None if result is None else json.loads(result)
 
   def write_df(self, key: str, df: pd.DataFrame):
-    self.redis_client.set("key", zlib.compress(pickle.dumps(df)))
-    # self.redis_client.set(key, df.to_json())
+    dumped_str = zlib.compress(pickle.dumps(df))
+    encoded_str = codecs.encode(dumped_str, "base64").decode()
+    self.redis_client.set(key, encoded_str)
 
   def read_df(self, key):
-    return pickle.loads(zlib.decompress(self.redis_client.get(key)))
-    # result = self.redis_client.get(key)
-    # return None if result is None else json.loads(result)
+    redis_str = self.redis_client.get(key)
+    encoded_str = codecs.decode(redis_str.encode(), "base64")
+    pickled = zlib.decompress(encoded_str)
+    return pickle.loads(pickled)
 
   def close_client_connection(self):
     self.redis_client.close()

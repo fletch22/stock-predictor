@@ -30,16 +30,25 @@ def get_filename_info(filepath):
     "date": date_utils.parse_datestring(datestr)
   }
 
-def create_unique_folder(parent_dir: str, prefix: str) -> str:
+def create_unique_file_system_name(parent_dir: str, prefix: str, extension: str=None):
   date_str = date_utils.format_file_system_friendly_date(datetime.now())
-  proposed_core_dir = f"{prefix}_{date_str}"
-  proposed_dir = os.path.join(parent_dir, proposed_core_dir)
+  proposed_core_item_name = f"{prefix}_{date_str}"
+
+  if extension is not None:
+    proposed_core_item_name = f"{proposed_core_item_name}.{extension}"
+
+  proposed_item = os.path.join(parent_dir, proposed_core_item_name)
   count = 1
-  while os.path.exists(proposed_dir):
-    proposed_dir = os.path.join(parent_dir, f"{proposed_core_dir}-({count})")
+  while os.path.exists(proposed_item):
+    proposed_item = os.path.join(parent_dir, f"{proposed_core_item_name}-({count})")
     count += 1
     if count > 10:
       raise Exception("Something went wrong. Too many dirs with similar names.")
+
+  return proposed_item
+
+def create_unique_folder(parent_dir: str, prefix: str) -> str:
+  proposed_dir = create_unique_file_system_name(parent_dir, prefix, extension=None)
 
   os.makedirs(proposed_dir, exist_ok=False)
   return proposed_dir
@@ -80,3 +89,12 @@ def get_eod_ticker_file_path(symbol: str):
 
 def get_fun_ticker_file_path(symbol: str):
   return os.path.join(config.constants.SHAR_SPLIT_FUNDAMENTALS_DIR, f"{symbol}.csv")
+
+def get_folders_in_dir(path: str):
+  folders = []
+  # r=root, d=directories, f = files
+  for r, d, f in os.walk(path):
+    for folder in d:
+      folders.append(os.path.join(r, folder))
+
+  return folders

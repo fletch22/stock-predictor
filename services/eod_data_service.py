@@ -20,8 +20,8 @@ def get_todays_merged_shar_data():
     df = get_shar_equity_data()
     df_merged = merge_shar_equity_price_data(df)
 
-    split_eod_data_to_files_service.process(df_merged)
     df_merged.to_csv(config.constants.SHAR_EQUITY_PRICES_MERGED, index=False)
+    split_eod_data_to_files_service.process(df_merged)
 
   return df_merged
 
@@ -35,10 +35,14 @@ def get_shar_equity_data(sample_file_size: SampleFileTypeSize = SampleFileTypeSi
 
 
 def merge_shar_equity_price_data(df_base: pd.DataFrame):
-  find_and_download_missing_days(df_base, datetime.now())
-  files = file_services.walk(config.constants.SHAR_EQUITY_PRICES_DIR)
+  missing = find_and_download_missing_days(df_base, datetime.now())
 
-  supp_files = [f for f in files if os.path.basename(f).startswith("supp_")]
+  supp_files = []
+  for m in missing:
+    supp_files.append(m['supplemental_path'])
+
+  # files = file_services.walk(config.constants.SHAR_EQUITY_PRICES_DIR)
+  # supp_files = [f for f in files if os.path.basename(f).startswith("supp_")]
   logger.info(f"Found {len(supp_files)} supplemental files.")
 
   sort_crit = ['ticker', 'date']
@@ -52,24 +56,24 @@ def merge_shar_equity_price_data(df_base: pd.DataFrame):
 
     logger.info(f"df_merged size: {df_merged.shape[0]}")
 
-  df_merged.drop_duplicates(sort_crit, inplace=True)
+  df_unduped = df_merged.drop_duplicates(sort_crit)
 
-  logger.info(f"df_unduped size: {df_merged.shape[0]}")
+  logger.info(f"df_unduped size: {df_unduped.shape[0]}")
 
-  df_merged.sort_values(by=['date'], inplace=True)
+  df_unduped.sort_values(by=['date'], inplace=True)
 
-  return df_merged
+  return df_unduped
 
 
 def find_and_download_missing_days(df: pd.DataFrame, until_date: datetime):
-  df_sorted = df.sort_values(by=['date'], inplace=False)
+  df.sort_values(by=['date'], inplace=True)
 
-  end_date_str = df_sorted.iloc[-1, :]["date"]
+  end_date_str = df.iloc[-1, :]["date"]
   end_date = date_utils.parse_datestring(end_date_str)
 
   next_date = end_date + timedelta(days=1)
 
-  missing_dates = []
+  results = []
   while next_date <= until_date:
     next_plus_one = next_date + timedelta(days=1)
     filename = get_supplemental_filename(next_date, next_plus_one)
@@ -78,11 +82,12 @@ def find_and_download_missing_days(df: pd.DataFrame, until_date: datetime):
 
     if not os.path.exists(file_path):
       stock_download_service.download_sep(next_date, next_plus_one, file_path)
-      missing_dates.append(next_date)
+
+    results.append({'next_date': next_date, 'supplemental_path': file_path})
 
     next_date = next_date + timedelta(days=1)
 
-  return missing_dates
+  return results
 
 
 def get_supplemental_filename(start_date: datetime, end_date: datetime):

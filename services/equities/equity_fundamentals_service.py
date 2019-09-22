@@ -55,7 +55,7 @@ def get_symbol_file_path(symbol: str, translate_to_hdfs: bool=False):
 
   return file_path
 
-def get_multiple_values(symbol: str, bet_date: datetime, desired_values: Sequence[str], df: pd.DataFrame=None, translate_to_hdfs=False) -> object:
+def get_multiple_values(symbol: str, bet_date: datetime, desired_values: Sequence[str], df: pd.DataFrame=None, translate_to_hdfs=False) -> dict:
   if df is None:
     df = get_symbol_fundamental_data(symbol, bet_date, translate_to_hdfs=translate_to_hdfs)
 

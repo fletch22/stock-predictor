@@ -23,32 +23,6 @@ class TestEquityFundamentalsService(TestCase):
     # Assert
     assert (pe > 20)
 
-  def test_get_min_max(self):
-    # Arrange
-    sample_infos = [
-      {'symbol': 'ibm', 'offset_info': {100: {'pe': 14.15, 'ev': 198593033631.0}, 200: {'pe': 11.957, 'ev': 169182898289.0}}},
-      {'symbol': 'msft', 'offset_info': {101: {'pe': 1.13, 'ev': 998593033631.0}, 2222: {'pe': 3.957, 'ev': 171800000000.0}}},
-      {'symbol': 'aapl', 'offset_info': {101: {'pe': None, 'ev': None}, 2222: {'pe': None, 'ev': 171800000000.0}}}
-    ]
-
-    # Act
-    min_max = equity_fundamentals_service._get_min_max_from_sample_infos(sample_infos)
-
-    # Assert
-    logger.info(f"MM: {min_max}")
-
-    keys = min_max.keys()
-    assert('pe' in keys)
-    assert ('ev' in keys)
-    min_max_pe = min_max['pe']
-    min_max_ev = min_max['ev']
-
-    assert(min_max_pe['min'] == 1.13)
-    assert(min_max_pe['max'] == 14.15)
-
-    assert (min_max_ev['min'] == 169182898289.0)
-    assert (min_max_ev['max'] == 998593033631.0)
-
   def test_get_scaled_fundamentals(self):
     # Arrange
     upper_bound = 100
@@ -58,8 +32,10 @@ class TestEquityFundamentalsService(TestCase):
       {'symbol': 'msft', 'offset_info': {101: {'pe': 2, 'ev': 4}, 2222: {'pe': 10, 'ev': 10}}}
     ]
 
+    package_path = os.path.join(config.constants.CACHE_DIR)
+
     # Act
-    result = equity_fundamentals_service.get_scaled_fundamentals(fundy_infos, lower_bound, upper_bound)
+    result = equity_fundamentals_service.get_scaled_fundamentals(fundy_infos, package_path)
 
     # Assert
     logger.info(f"Res: {result}")

@@ -63,13 +63,3 @@ class TestRedisService(TestCase):
     assert(duration_read < 125)
     logger.info(f"Duration write:read - {duration_write}: {duration_read}")
 
-  def test_foo(self):
-    redis_service = RedisService()
-    short_model_id = "ICN2174544806954869914"
-    image_path = "C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\process_2019-09-05_19-18-00-268.24\\graphed\\1_CHMG_2019-07-18.png"
-
-    key_pred = spark_predict.get_prediction_cache_key(image_path, short_model_id)
-
-    thing = redis_service.read(key_pred)
-
-    print(thing)

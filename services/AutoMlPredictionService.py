@@ -30,7 +30,7 @@ class AutoMlPredictionService():
     self.package_dir = package_dir
     self.short_model_id = short_model_id
 
-  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, max_files=-1, purge_cached: bool = False):
+  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
     file_paths = file_services.walk(image_dir)
     random.shuffle(file_paths, random.random)
 
@@ -43,9 +43,17 @@ class AutoMlPredictionService():
       category_actual, symbol, yield_date_str = EquityUtilService.get_info_from_file_path(f)
       yield_date = date_utils.parse_datestring(yield_date_str)
 
-      start_date = date_utils.parse_datestring('2019-07-17')
+      # df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs_path=False)
+      # df_dt_filtered = StockService.filter_dataframe_by_date(df, start_date=None, end_date=yield_date)
+      # df_curt = df_dt_filtered.iloc[-1000:,:]
+      # std = 0
+      # if df_curt.shape[0] > 1:
+      #   std = statistics.stdev(df_curt['close'].values.tolist())
 
-      if yield_date > start_date:
+      if start_sample_date is None:
+        start_sample_date = date_utils.parse_datestring('1000-01-01')
+
+      if yield_date > start_sample_date:
         logger.info(f"{symbol} using yield date {yield_date_str}")
         image_info.append({"category_actual": category_actual,
                            "symbol": symbol,
@@ -93,10 +101,15 @@ class AutoMlPredictionService():
       logger.info(n)
 
     total_samples = len(aggregate_gain)
+
+    mean_frac = 0
     if total_samples > 0:
-      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean(aggregate_gain)}; total: {invest_amount}")
+      mean_frac = mean(aggregate_gain)
+      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean_frac}; total: {invest_amount}")
     else:
       logger.info("No samples to calculate.")
+
+    return mean_frac
 
   def calc_frac_gain(self, aggregate_gain, bet_price, category_actual: str, category_predicted: str, open: float, high: float, low:float, close: float, count: int, initial_investment_amount: float, max_drop: float, score: float, sought_gain_frac: float, symbol: str, yield_date: datetime):
     earned_amount = initial_investment_amount
@@ -109,7 +122,7 @@ class AutoMlPredictionService():
     logger.info(f"\tbet_price: {bet_price}; open: {open}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
     if score >= self.score_threshold:
       if open > bet_price:
-        frac_return = (open - bet_price) / bet_price
+        frac_return = ((open - bet_price) / bet_price)
         aggregate_gain.append(frac_return)
         count += 1
       elif category_actual == category_predicted:

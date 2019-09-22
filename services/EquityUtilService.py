@@ -4,6 +4,7 @@ import statistics
 from datetime import datetime, timedelta
 
 import pandas as pd
+import numpy as np
 from pyspark import SparkFiles
 
 from config.logger_factory import logger_factory
@@ -116,6 +117,37 @@ class EquityUtilService:
     date_str = parts[2].split('.')[0]
 
     return cat_actual, symbol, date_str
+
+  @classmethod
+  def get_merged_mean_stdev(cls, end_date: datetime, trading_days_span: int):
+    end_date_str = date_utils.get_standard_ymd_format(end_date)
+    df = eod_data_service.get_todays_merged_shar_data()
+    df_dt_filtered = df[df['date'] <= end_date_str]
+    agg_std = []
+
+    def get_std(df, agg_std):
+      if df.shape[0] > 1:
+        df = df.iloc[-trading_days_span:, :]
+        symbol = df.iloc[0]['ticker']
+        std = statistics.stdev(df['close'].values.tolist())
+        agg_std.append([symbol, std])
+        logger.info(f"Calc stdev for symbol {symbol}: {std}")
+
+    df_dt_filtered.groupby('ticker').filter(lambda x: get_std(x, agg_std))
+
+    df_agg = pd.DataFrame(agg_std, columns=['ticker', 'price'])
+
+    # NOTE: 2019-09-14: chris.flesche: giving a haircut to remove outlier.
+    return df_agg[df_agg['price'] < np.percentile(df_agg['price'], 99)]
+
+  @classmethod
+  def is_missing_today(cls, df: pd.DataFrame):
+    today_str = date_utils.get_standard_ymd_format(datetime.now())
+    df_now = df[df['date'] == today_str]
+
+    symbols = df_now['ticker'].unique().tolist()
+
+    return len(symbols) == 0
 
 
 

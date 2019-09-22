@@ -15,13 +15,3 @@ class TestFileServices(TestCase):
 
     # Assert
     assert(not created_today)
-
-  def test_foo(self):
-    dirs = file_services.get_folders_in_dir("C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\tmp_folder_spot_09-08")
-
-    dir_names = [os.path.basename(d) for d in dirs if os.path.basename(d).startswith("process")]
-
-    str = [f"\"{d}\"" for d in dir_names]
-
-    print(",\n".join(str))
-

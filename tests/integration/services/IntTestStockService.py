@@ -1,21 +1,20 @@
 import os
+import shutil
 from datetime import datetime
 from unittest import TestCase
-
-from services.Eod import Eod
 
 import config
 from config import logger_factory
 from services import chart_service, file_services, eod_data_service
 from services.BasicSymbolPackage import BasicSymbolPackage
-from services.EquityUtilService import EquityUtilService
+from services.Eod import Eod
 from services.SampleFileTypeSize import SampleFileTypeSize
 from services.StockService import StockService
 from utils import random_utils, date_utils
 from utils.date_utils import STANDARD_DAY_FORMAT
-import shutil
 
 logger = logger_factory.create_logger(__name__)
+
 
 class TestStockService(TestCase):
 
@@ -48,54 +47,21 @@ class TestStockService(TestCase):
       basic_symbol_package.add_symbol(symbol, "2011-01-01", 30)
 
     # Assert
-    assert(len(basic_symbol_package.data) == expected_num_to_load)
-
-  def test_get_plot_and_save_many(self):
-    # Arrange
-    prediction_dir = os.path.join(config.constants.CACHE_DIR, "prediction_test")
-    if os.path.exists(prediction_dir):
-      shutil.rmtree(prediction_dir)
-
-    df_good, df_bad = StockService.get_sample_data(prediction_dir, 120000, sample_file_size=False, persist_data=True)
-
-    logger.info(f"Columns: {df_good.columns}")
-
-    graph_dir = os.path.join(prediction_dir, "graphed")
-    os.makedirs(graph_dir, exist_ok=True)
-
-    # file_path = os.path.join(prediction_dir, "up_1.0_pct.csv")
-    # chart_service.plot_and_save_from_single_file(graph_dir, file_path)
-
-    chart_service.plot_and_save_for_learning(df_good, graph_dir, category="1")
-    chart_service.plot_and_save_for_learning(df_bad, graph_dir, category="0")
-
-    assert (True)
-
-  def test_rename(self):
-    par_dir = os.path.join(config.constants.CACHE_DIR, "prediction_test", "graphed - Copy")
-    prediction_dir = os.path.join(par_dir, "0")
-
-    filepaths = file_services.walk(prediction_dir)
-
-    for idx, f in enumerate(filepaths):
-      new_path = os.path.join(prediction_dir, f"{idx}.png")
-      os.rename(f, new_path)
-      # if idx > 10:
-      #   break
+    assert (len(basic_symbol_package.data) == expected_num_to_load)
 
   def test_get_result_from_date(self):
     # Arrange
-    df = eod_data_service.get_shar_equity_data(sample_file_size=True)
+    df = eod_data_service.get_shar_equity_data(sample_file_size=SampleFileTypeSize.SMALL)
     symbol = "AAPL"
-    date = date_utils.parse_datestring("2019-06-14")
+    yield_date = date_utils.parse_datestring("2019-06-14")
 
     # Act
-    eod_info = StockService.get_eod_of_date(symbol, date, df=df)
+    eod_info = StockService.get_eod_of_date(symbol, yield_date)
 
     # Assert
-    assert(eod_info["symbol"] == symbol)
-    assert(eod_info["date"] == date)
-    assert(194.15 == eod_info["bet_price"])
+    assert (eod_info["symbol"] == symbol)
+    assert (eod_info["date"] == yield_date)
+    assert (194.15 == eod_info["bet_price"])
 
   def test_get_sample_infos(self):
     # Arrange
@@ -103,7 +69,7 @@ class TestStockService(TestCase):
     num_days_avail = 2
     min_price = 5.0
     volatility_min = 2.79
-    df_g_filtered = StockService._get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, SampleFileTypeSize.SMALL)
+    df_g_filtered = StockService.get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, SampleFileTypeSize.SMALL)
 
     min_samples = 33
 
@@ -116,7 +82,7 @@ class TestStockService(TestCase):
       num_offsets = len(sample_info[key]["offsets"])
       total_offsets += num_offsets
 
-    assert(total_offsets == min_samples)
+    assert (total_offsets == min_samples)
 
   def test_yield_function(self):
     # Arrange
@@ -125,42 +91,17 @@ class TestStockService(TestCase):
 
     df_day_before = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-01") & (df["date"] <= "2013-01-31")]
     date_before = date_utils.parse_datestring("2013-02-01")
-    eod_data_before = StockService.get_eod_of_date(symbol, date_before, df_day_before)
+    eod_data_before = StockService.get_eod_of_date(symbol, date_before)
 
     logger.info(f"Close: {eod_data_before[Eod.CLOSE]}")
 
     df_yield_day = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-15") & (df["date"] <= "2013-02-01")]
     date_yield_day = date_utils.parse_datestring("2013-02-01")
-    eod_data = StockService.get_eod_of_date(symbol, date_yield_day, df_yield_day)
+    eod_data = StockService.get_eod_of_date(symbol, date_yield_day)
 
     logger.info(f"Bet_price: {eod_data['bet_price']}")
 
-    assert(eod_data_before[Eod.CLOSE] == eod_data["bet_price"])
-
-  # def test_get_stock_history_for_day(self):
-  #   # Arrange
-  #   amount_to_spend = 25000
-  #   num_days_avail = 1000
-  #   min_price = 5.0
-  #   end_date = date_utils.parse_datestring("2019-07-17")
-  #
-  #   df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.LARGE)
-  #   # df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
-  #
-  #   logger.info(f"Found {len(df['ticker'].unique().tolist())} tickers.")
-  #
-  #   df_grouped = df.groupby('ticker')
-  #
-  #   df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x))
-  #
-  #   logger.info(f"df_g_filtered {len(df_g_filtered['ticker'].unique().tolist())} tickers.")
-  #
-  #   parent_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "daily")
-  #   os.makedirs(parent_dir, exist_ok=True)
-  #   save_dir = file_services.create_unique_folder(parent_dir, "bet")
-  #
-  #   # Act
-  #   StockService.get_stock_history_for_day(df_g_filtered, 1000, save_dir, False, end_date)
+    assert (eod_data_before[Eod.CLOSE] == eod_data["bet_price"])
 
   def test_get_and_prep_equity_data_one_day(self):
     # Arrange
@@ -169,17 +110,19 @@ class TestStockService(TestCase):
     num_days_avail = 1000
     yield_date_str = "2019-08-15"
     yield_date = date_utils.parse_datestring(yield_date_str)
+    volatility_min = 2.79
 
     # Act
     df = StockService.get_and_prep_equity_data_one_day(amount_to_spend=amount_to_spend,
                                                        num_days_avail=num_days_avail,
                                                        min_price=min_price,
-                                                       yield_date=yield_date)
+                                                       yield_date=yield_date,
+                                                       volatility_min=volatility_min)
 
     # Assert
     df_temp_count = df[df['date'] <= yield_date_str]
     logger.info(f"df_temp {df_temp_count.shape[0]}")
-    assert(df_temp_count.shape[0] == df.shape[0])
+    assert (df_temp_count.shape[0] == df.shape[0])
 
     symbols_with_date = df_temp_count['ticker'].unique().tolist()
     symbols_with_date.sort()
@@ -189,5 +132,5 @@ class TestStockService(TestCase):
     symbols_total.sort()
 
     logger.info(f"Num symbols total: {len(symbols_total)}")
-    assert(len(symbols_total) > 0)
-    assert(symbols_total == symbols_with_date)
+    assert (len(symbols_total) > 0)
+    assert (symbols_total == symbols_with_date)

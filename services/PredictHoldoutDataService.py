@@ -15,58 +15,54 @@ class PredictHoldoutDataService():
 
   @classmethod
   def get_predictions_on_holdout_date(cls):
-    # short_model_id = "ICN5723877521014662275"
     # short_model_id = "ICN7780367212284440071" # fut_prof 68%
     # short_model_id = "ICN7558148891127523672"  # multi_3 second one%
     # short_model_id = "ICN2174544806954869914"  # multi-2019-09-01 66%
-    short_model_id = "ICN2383257928398147071"  # vol_eq_09_14_11_47_31_845_11 65%
+    # short_model_id = "ICN2383257928398147071"  # vol_eq_09_14_11_47_31_845_11 65%
+    short_model_id = "ICN200769567050768296"  # voleq_rec Sept %
 
-    # 2019-08-12: Accuracy: 0.30434782608695654; total: 138; mean frac: -0.004717604113931053; total: 5054.543343430598
-    # 2019-08-13: Accuracy: 0.5918367346938775; total: 147; mean frac: 0.004890778977258129; total: 20346.317789347184
-    # 2019-08-14: Accuracy: 0.15714285714285714; total: 140; mean frac: -0.01345253429166599; total: 1463.3176154267776
-    # 2019-08-15: Accuracy: 0.4027777777777778; total: 144; mean frac: -0.0026951464157574487; total: 6646.6928823856315
-    # 2019-08-16: Empty
-    # 2019-08-19: Accuracy: 0.7112676056338029; total: 142; mean frac: 0.005669573216077437; total: 22199.740072003715
-    '2019-08-23'  # Accuracy: 0.1793103448275862; total: 145; mean frac: -0.010966436688331901; total: 1975.483279808558
+    # holdout_dates = [
+    #   '2019-07-17',
+    #   '2019-07-18',
+    #   '2019-07-19',
+    #   '2019-07-22',
+    #   '2019-07-23',
+    #   '2019-07-24',
+    #   '2019-07-25',
+    #   '2019-07-26',
+    #   '2019-07-29',
+    #   '2019-07-30',
+    #   '2019-07-31',
+    #   '2019-08-01',
+    #   '2019-08-02',
+    #   '2019-08-05',
+    #   '2019-08-06',
+    #   '2019-08-07',
+    #   '2019-08-08',
+    #   '2019-08-09',
+    #   '2019-08-27',
+    #   '2019-08-28',
+    #   '2019-08-29',
+    #   '2019-08-30',
+    #   '2019-09-02',
+    #   '2019-09-03',
+    #   '2019-09-04',
+    #   '2019-09-05',
+    #   '2019-09-06'
+    # ]
 
     holdout_dates = [
-      '2019-07-17',
-      '2019-07-18',
-      '2019-07-19',
-      '2019-07-22',
-      '2019-07-23',
-      '2019-07-24',
-      '2019-07-25',
-      '2019-07-26',
-      '2019-07-29',
-      '2019-07-30',
-      '2019-07-31',
-      '2019-08-01',
-      '2019-08-02',
-      '2019-08-05',
-      '2019-08-06',
-      '2019-08-07',
-      '2019-08-08',
-      '2019-08-09',
-      '2019-08-27',
-      '2019-08-28',
-      '2019-08-29',
-      '2019-08-30',
-      '2019-09-02',
-      '2019-09-03',
-      '2019-09-04',
-      '2019-09-05',
-      '2019-09-06'
+      '2019-08-23',
     ]
 
     image_dirs = []
     for date_str in holdout_dates:
       dt = date_utils.parse_datestring(date_str)
-      image_dirs.append(cls.get_predictions_on_date(dt, short_model_id))
+      image_dirs.append(cls.get_predictions_on_date(dt, short_model_id, None))
 
 
   @classmethod
-  def get_predictions_on_date(self, yield_date: datetime, short_model_id: str):
+  def get_predictions_on_date(self, yield_date: datetime, short_model_id: str, start_sample_date: datetime):
 
     logger.info(f"Getting data for date {date_utils.get_standard_ymd_format(yield_date)}.")
 
@@ -76,7 +72,7 @@ class PredictHoldoutDataService():
     sought_gain_frac = pct_gain_sought/100
     max_files = 3000
     min_price = 5.0
-    amount_to_spend = 10000
+    amount_to_spend = 25000
     chart_type = ChartType.Neopolitan
     purge_cached = False
     volatility_min = 2.79
@@ -91,7 +87,7 @@ class PredictHoldoutDataService():
       package_dir = os.path.dirname(image_dir)
 
       auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=package_dir, score_threshold=score_threshold)
-      auto_ml_service.predict_and_calculate(task_dir, image_dir, sought_gain_frac, max_files=max_files, purge_cached=purge_cached)
+      auto_ml_service.predict_and_calculate(task_dir, image_dir, sought_gain_frac, max_files=max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
       stopwatch.stop()
 
       logger.info(f"Rendered images in {image_dir}")

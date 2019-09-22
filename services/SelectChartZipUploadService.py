@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import config
 from charts.ChartType import ChartType
 from config import logger_factory
+from learning_set.LearningSetMetaData import LearningSetMetaData
 from services import file_services
 from services.AutoMlGeneralService import AutoMlGeneralService
 from services.CloudFileService import CloudFileService
@@ -69,8 +70,32 @@ class SelectChartZipUploadService:
     return df_g_filtered, package_path
 
   @classmethod
-  def select_and_process(cls, min_price: float, amount_to_spend: float, trading_days_span: int, min_samples: int, pct_gain_sought: float,
-                         start_date: datetime, end_date: datetime, chart_type: ChartType, volatility_min: float):
+  def select_and_process(cls, lsm: LearningSetMetaData):
+    package_path, graph_dir = cls.create_package(lsm)
+
+    df_g_filtered = StockService.get_and_prep_equity_data(lsm.amount_to_spend, lsm.trading_days_span, lsm.min_price, lsm.volatility_min, lsm.start_date, lsm.end_date)
+
+    logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
+
+    stock_infos = StockService.get_sample_infos(df_g_filtered, lsm.trading_days_span, lsm.min_samples, False, lsm.start_date, lsm.end_date)
+    if ChartType.Neopolitan == lsm.chart_type:
+      stock_infos = equity_fundamentals_service.get_scaled_sample_infos(stock_infos, package_path, lsm.trading_days_span, lsm.start_date, lsm.end_date, desired_fundamentals=['pe', 'ev', 'eps'])
+
+    for sinfo in stock_infos:
+      sinfo['trading_days_span'] = lsm.trading_days_span
+      sinfo['pct_gain_sought'] = lsm.pct_gain_sought
+      sinfo['save_dir'] = graph_dir
+      sinfo['start_date'] = lsm.start_date
+      sinfo['end_date'] = lsm.end_date
+      sinfo['chart_type'] = lsm.chart_type
+      sinfo['package_path'] = package_path
+
+    spark_select_and_chart.do_spark(stock_infos)
+
+    return package_path
+
+  @classmethod
+  def create_package(cls, lsm: LearningSetMetaData):
     par_dir = os.path.join(config.constants.APP_FIN_OUTPUT_DIR, "selection_packages", cls.__name__)
     package_path = file_services.create_unique_folder(par_dir, "process")
 
@@ -79,34 +104,20 @@ class SelectChartZipUploadService:
 
     output_dir = os.path.join(config.constants.CACHE_DIR, "spark_test")
     os.makedirs(output_dir, exist_ok=True)
-    df_g_filtered = StockService._get_and_prep_equity_data(amount_to_spend, trading_days_span, min_price, volatility_min, SampleFileTypeSize.LARGE, start_date, end_date)
 
-    logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
+    metadata_dir = os.path.join(package_path, 'metadata')
+    os.makedirs(metadata_dir, exist_ok=True)
 
-    stock_infos = StockService.get_sample_infos(df_g_filtered, trading_days_span, min_samples, False, start_date, end_date)
-    if ChartType.Neopolitan == chart_type:
-      stock_infos = equity_fundamentals_service.get_scaled_sample_infos(stock_infos, package_path, trading_days_span, start_date, end_date, desired_fundamentals=['pe', 'ev', 'eps'])
+    lsm_path = os.path.join(metadata_dir, LearningSetMetaData.pickle_filename())
+    lsm.persist(lsm_path)
 
-    for sinfo in stock_infos:
-      sinfo['trading_days_span'] = trading_days_span
-      sinfo['pct_gain_sought'] = pct_gain_sought
-      sinfo['save_dir'] = graph_dir
-      sinfo['start_date'] = start_date
-      sinfo['end_date'] = end_date
-      sinfo['chart_type'] = chart_type
-      sinfo['package_path'] = package_path
-
-    spark_select_and_chart.do_spark(stock_infos)
-
-    return package_path
+    return package_path, graph_dir
 
   @classmethod
-  def create_learning_set(cls, start_date: datetime, end_date: datetime, min_samples: int, pct_gain_sought: float, trading_days_span: int,
-                          pct_test_holdout: float, min_price: float, amount_to_spend: float, chart_type: ChartType, volatility_min: float):
-    package_path = cls.select_and_process(min_price, amount_to_spend, trading_days_span,
-                                          min_samples, pct_gain_sought, start_date, end_date, chart_type, volatility_min)
+  def create_learning_set(cls, lsm: LearningSetMetaData):
+    package_path = cls.select_and_process(lsm)
 
-    return SelectChartZipUploadService.split_files_and_prep(min_samples, package_path, pct_test_holdout)
+    return SelectChartZipUploadService.split_files_and_prep(lsm.min_samples, package_path, lsm.pct_test_holdout)
 
   @classmethod
   def split_files_and_prep(cls, sample_size: int, package_path: str, pct_test_holdout: float=20):

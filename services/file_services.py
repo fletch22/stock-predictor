@@ -1,8 +1,11 @@
 import ctypes
+import shutil
 from ctypes import windll
 from datetime import datetime
 from os import walk as walker
 import os
+from threading import Thread
+from typing import Sequence, Tuple
 from zipfile import ZipFile
 
 import config
@@ -98,3 +101,7 @@ def get_folders_in_dir(path: str):
       folders.append(os.path.join(r, folder))
 
   return folders
+
+def fast_copy(files_many: Sequence[Tuple[str, str]]):
+  for source_path, destination_path in files_many:
+    Thread(target=shutil.copy, args=[source_path, destination_path]).start()

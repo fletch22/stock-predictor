@@ -27,7 +27,7 @@ class TestChartServices(TestCase):
     save_dir = os.path.join(config.constants.CACHE_DIR)
 
     # Act
-    chart_service.plot_and_save_for_learning(df, save_dir, "1")
+    chart_service.save_data_as_chart(df, "2019-09-01", save_dir, translate_save_path_hdfs=False)
 
     # Assert
     assert(os.path.exists(expected_output_path))
@@ -69,7 +69,6 @@ class TestChartServices(TestCase):
     symbol = "ibm"
     yield_date_str = "2019-07-16"
 
-    plt = chart_service.render_decorated_chart(df, fundy=fundy, category=category, symbol=symbol, yield_date_str=yield_date_str,
-                                                   save_dir=save_dir, translate_save_path_hdfs=False)
+    plt = chart_service.render_decorated_chart(df, fundy=fundy)
 
     plt.show()

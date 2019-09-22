@@ -50,18 +50,18 @@ class StockService:
     return rand_symbols
 
   @classmethod
-  def get_and_prep_equity_data_one_day(cls, amount_to_spend: float, num_days_avail: int, min_price: float, yield_date: datetime, volatility_min: float):
+  def get_and_prep_equity_data_one_day(cls, amount_to_spend: float, num_days_avail: int, min_price: float, yield_date: datetime, volatility_min: float, get_realtime_price_if_today_missing: bool):
     df = eod_data_service.get_todays_merged_shar_data()
     df = df.sort_values(["date"])
 
     yield_date_str = date_utils.get_standard_ymd_format(yield_date)
     symbols = df[df['date'] == yield_date_str]['ticker'].unique().tolist()
-
     df_symbol_on_date = df[df['ticker'].isin(symbols)]
 
     logger.info(f"len with symbols: {df_symbol_on_date.shape[0]}")
 
     df_date_filtered = df_symbol_on_date[df_symbol_on_date["date"] <= yield_date_str]
+
     logger.info(f"len dt filtered with symbols: {df_date_filtered.shape[0]}")
 
     df_date_filtered = df_date_filtered.sort_values(by=['date'], inplace=False)
@@ -70,13 +70,19 @@ class StockService:
 
     df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x, volatility_min=volatility_min))
 
+    # This should be lpwer down after the basic filtering.
+    if get_realtime_price_if_today_missing and EquityUtilService.is_missing_today(df_g_filtered):
+      # Get realtime price and add to df (spark?)
+      raise Exception("Not yet implemented.")
+      pass
+
     logger.info(f"len final filters: {df_g_filtered.shape[0]}")
 
     return df_g_filtered
 
   @classmethod
-  def _get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, volatility_min, sample_file_size: SampleFileTypeSize=SampleFileTypeSize.LARGE, start_date: datetime=None, end_date: datetime=None):
-    df = eod_data_service.get_shar_equity_data(sample_file_size=sample_file_size)
+  def get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, volatility_min, start_date: datetime=None, end_date: datetime=None):
+    df = eod_data_service.get_todays_merged_shar_data()
     df = df.sort_values(["date"])
 
     df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
@@ -109,7 +115,7 @@ class StockService:
     num_days_avail = trading_days_span
 
     os.makedirs(output_dir, exist_ok=True)
-    df_g_filtered = cls._get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, sample_file_size)
+    df_g_filtered = cls.get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, sample_file_size)
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 

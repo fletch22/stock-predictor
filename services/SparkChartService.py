@@ -25,7 +25,6 @@ class SparkChartService():
 
     df = EquityUtilService.get_df_from_ticker_path(symbol, True)
     df_sorted = df.sort_values(by=['date'], inplace=False)
-
     df_date_filtered = StockService.filter_dataframe_by_date(df_sorted, start_date, end_date)
 
     if chart_type == ChartType.Neopolitan:

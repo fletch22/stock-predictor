@@ -3,9 +3,10 @@ from typing import Sequence, List
 
 from charts.ChartType import ChartType
 from services import pickle_service
+from utils.ClassValidator import ClassValidator
 
 
-class LearningSetMetaData():
+class LearningSetMetaData(ClassValidator):
   min_price: float = None
   amount_to_spend: float = None
   trading_days_span: int = None
@@ -29,39 +30,6 @@ class LearningSetMetaData():
     result, msg = self.must_be_positive_nonzero_and_not_none("volatility_min", result, msgs)
 
     return result, msg
-
-  def must_be_positive_and_not_none(self, attribute_name: str, is_valid_so_far: bool, messages: List[str]) -> (bool, List[str]):
-    is_valid = is_valid_so_far
-    attr_value = getattr(self, attribute_name)
-    if attr_value is None:
-      messages.append(f"{attribute_name} is None.")
-      is_valid = False
-    elif attr_value < 0:
-      messages.append(f"{attribute_name} is less than 0.")
-      is_valid = False
-
-    return is_valid, messages
-
-  def must_be_positive_nonzero_and_not_none(self, attribute_name: str, is_valid_so_far: bool, messages: List[str]) -> (bool, List[str]):
-    is_valid = is_valid_so_far
-    attr_value = getattr(self, attribute_name)
-    if attr_value is None:
-      messages.append(f"{attribute_name} is None.")
-      is_valid = False
-    elif attr_value <= 0:
-      messages.append(f"{attribute_name} is less than 0.")
-      is_valid = False
-
-    return is_valid, messages
-
-  def must_be_not_none(self, attribute_name: str, is_valid_so_far: bool, messages: List[str]) -> (bool, List[str]):
-    is_valid = is_valid_so_far
-    attr_value = getattr(self, attribute_name)
-    if attr_value is None:
-      messages.append(f"{attribute_name} is None.")
-      is_valid = False
-
-    return is_valid, messages
 
   def persist(self, file_path: str):
     pickle_service.save(self, file_path)

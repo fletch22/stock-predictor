@@ -5,12 +5,14 @@ from unittest import TestCase
 from sklearn.preprocessing import MinMaxScaler
 
 import config
+from categorical.BinaryCategoryType import BinaryCategoryType
 from config import logger_factory
 from services import chart_service
 import pandas as pd
 
 from services.StockService import StockService
 from services.equities import equity_fundamentals_service
+from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
 
@@ -25,9 +27,10 @@ class TestChartServices(TestCase):
     df = pd.read_csv(file_path)
 
     save_dir = os.path.join(config.constants.CACHE_DIR)
+    yield_date = date_utils.parse_datestring("2019-09-01")
 
     # Act
-    chart_service.save_data_as_chart(df, "2019-09-01", save_dir, translate_save_path_hdfs=False)
+    chart_service.save_data_as_chart("ibm", BinaryCategoryType.ONE, df, yield_date, save_dir, translate_save_path_hdfs=False)
 
     # Assert
     assert(os.path.exists(expected_output_path))

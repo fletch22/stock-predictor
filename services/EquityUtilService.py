@@ -7,9 +7,12 @@ import pandas as pd
 import numpy as np
 from pyspark import SparkFiles
 
+from categorical.BinaryCategoryType import BinaryCategoryType
+from charts.ChartMode import ChartMode
 from config.logger_factory import logger_factory
 from services import file_services, eod_data_service
 from services.Eod import Eod
+from services.RealtimeEquityPriceService import RealtimeEquityPriceService
 from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
@@ -31,18 +34,23 @@ class EquityUtilService:
     return df
 
   @classmethod
-  def calculate_category(cls, df: pd.DataFrame, pct_gain_sought: float):
+  def calculate_category_and_yield_date(cls, df: pd.DataFrame, pct_gain_sought: float, chart_mode: ChartMode) -> (BinaryCategoryType, datetime):
     df_tailed = df.tail(2)
 
-    bet_date_str = df.iloc[-2]['date']
-    bet_close_price = df.iloc[-2][Eod.CLOSE]
     yield_high_price = df_tailed.iloc[-1]['high']
     yield_date_str = df_tailed.iloc[-1]["date"]
+    yield_date = date_utils.parse_datestring(yield_date_str)
 
-    logger.info(f"{df_tailed.iloc[-2]['ticker']}; BuyPrice: {bet_close_price}; HighPrice: {yield_high_price}; bet date: {bet_date_str}; Yield date: {yield_date_str}")
-    pct_gain = ((yield_high_price - bet_close_price) / bet_close_price) * 100
+    category = BinaryCategoryType.UNKNOWN
+    if chart_mode == ChartMode.BackTest:
+      bet_date_str = df.iloc[-2]['date']
+      bet_close_price = df.iloc[-2][Eod.CLOSE]
 
-    return "1" if pct_gain >= pct_gain_sought else "0", yield_date_str
+      logger.info(f"{df_tailed.iloc[-2]['ticker']}; BuyPrice: {bet_close_price}; HighPrice: {yield_high_price}; bet date: {bet_date_str}; Yield date: {yield_date_str}")
+      pct_gain = ((yield_high_price - bet_close_price) / bet_close_price) * 100
+      category = BinaryCategoryType.ONE if pct_gain >= pct_gain_sought else BinaryCategoryType.ZERO
+
+    return category, yield_date
 
   @classmethod
   def filter_equity_basic_criterium(cls, amount_to_spend: float, num_days_avail: int, min_price: float, ticker_group: pd.DataFrame, volatility_min:float=1000):
@@ -62,9 +70,10 @@ class EquityUtilService:
     # Shares bought should be greater than .005% of the start span day's volume. So
     return df.shape[0] > num_days_avail \
            and close_price >= min_price \
+           and std < volatility_min \
            and shares_bought > (.0001 * yield_day_volume) \
            and start_day_volume > (yield_day_volume / 2) \
-           and std < volatility_min
+
 
   @classmethod
   def select_single_day_equity_data(cls, yield_date: datetime, trading_days_avail: int, min_price: float, amount_to_spend: float, volatility_min: float):
@@ -119,19 +128,23 @@ class EquityUtilService:
     return cat_actual, symbol, date_str
 
   @classmethod
-  def get_merged_mean_stdev(cls, end_date: datetime, trading_days_span: int):
+  def get_merged_mean_stdev(cls, end_date: datetime, trading_days_span: int, price_min: float=9999999999999):
     end_date_str = date_utils.get_standard_ymd_format(end_date)
     df = eod_data_service.get_todays_merged_shar_data()
+    df.sort_values(by=['date'], inplace=True)
     df_dt_filtered = df[df['date'] <= end_date_str]
+
     agg_std = []
 
     def get_std(df, agg_std):
       if df.shape[0] > 1:
         df = df.iloc[-trading_days_span:, :]
-        symbol = df.iloc[0]['ticker']
-        std = statistics.stdev(df['close'].values.tolist())
-        agg_std.append([symbol, std])
-        logger.info(f"Calc stdev for symbol {symbol}: {std}")
+        close_price = df.iloc[-1,:]['close']
+        if close_price > price_min:
+          symbol = df.iloc[0]['ticker']
+          std = statistics.stdev(df['close'].values.tolist())
+          agg_std.append([symbol, std])
+          logger.info(f"Calc stdev for symbol {symbol}: {std}; price: {close_price}")
 
     df_dt_filtered.groupby('ticker').filter(lambda x: get_std(x, agg_std))
 
@@ -148,6 +161,34 @@ class EquityUtilService:
     symbols = df_now['ticker'].unique().tolist()
 
     return len(symbols) == 0
+
+  @classmethod
+  def add_realtime_price(cls, df: pd.DataFrame):
+    symbols = df['ticker'].unique().tolist()
+
+    logger.info(f"Symbols: {len(symbols)}: {symbols}")
+
+    equity_info = RealtimeEquityPriceService.get_prices(symbols=symbols)
+
+    today = date_utils.get_standard_ymd_format(datetime.now())
+
+    prices = []
+    for ei in equity_info:
+      volume_str = ei['volume']
+      volume = 0 if volume_str == 'N/A' else float(volume_str)
+      new_close = float(ei['price'])
+      row = {'ticker': ei['symbol'], 'date': today, 'open': float(ei['price_open']),
+             'high': float(ei['day_high']), 'low': float(ei['day_low']),
+             'close': new_close, 'volume': volume, 'dividends': np.NaN, 'closeunadj': new_close, 'lastupdated': today}
+      prices.append(row)
+
+    df_today = pd.DataFrame(prices)
+    df_merged = pd.concat([df, df_today], ignore_index=True, sort=False)
+
+    return df_merged
+
+
+
 
 
 

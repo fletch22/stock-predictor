@@ -8,10 +8,13 @@ from pandas import DataFrame
 
 import config
 from config import logger_factory
+from prediction.PredictionRosebud import PredictionRosebud
 from services import chart_service, eod_data_service
 from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
+from services.RealtimeEquityPriceService import RealtimeEquityPriceService
 from services.SampleFileTypeSize import SampleFileTypeSize
+from services.TickerService import TickerService
 from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
@@ -50,13 +53,42 @@ class StockService:
     return rand_symbols
 
   @classmethod
-  def get_and_prep_equity_data_one_day(cls, amount_to_spend: float, num_days_avail: int, min_price: float, yield_date: datetime, volatility_min: float, get_realtime_price_if_today_missing: bool):
+  def filter_by_recent_symbols(cls, df: pd.DataFrame, target_date: datetime, get_most_recent_prev_date):
+    yield_date_str = date_utils.get_standard_ymd_format(target_date)
+    symbols = df[df['date'] == yield_date_str]['ticker'].unique().tolist()
+
+    date_str_list = None
+    current_date_str = yield_date_str
+    loop_count = 0
+    while len(symbols) == 0 and get_most_recent_prev_date:
+      loop_count += 1
+      if loop_count > 30: # NOTE: The market has never closed for more than a few weeks.
+        raise Exception("Could not find recent date.")
+      if date_str_list is None:
+        date_str_list = df['date'].unique().tolist()
+        date_str_list = sorted(date_str_list)
+
+      tmp_list = [ndx for ndx, d in enumerate(date_str_list) if d > current_date_str]
+      if len(tmp_list) == 0:
+        current_date_str = date_str_list[-1]
+      else:
+        current_date_str = date_str_list[-2]
+
+      logger.info(f"using current date_str: {current_date_str}")
+
+      symbols = df[df['date'] == current_date_str]['ticker'].unique().tolist()
+
+    return df[df['ticker'].isin(symbols)], current_date_str
+
+
+  @classmethod
+  def get_and_prep_equity_data_one_day(cls, prediction_rosebud: PredictionRosebud):
     df = eod_data_service.get_todays_merged_shar_data()
     df = df.sort_values(["date"])
 
-    yield_date_str = date_utils.get_standard_ymd_format(yield_date)
-    symbols = df[df['date'] == yield_date_str]['ticker'].unique().tolist()
-    df_symbol_on_date = df[df['ticker'].isin(symbols)]
+    yield_date_str = date_utils.get_standard_ymd_format(prediction_rosebud.yield_date)
+
+    df_symbol_on_date, _ = cls.filter_by_recent_symbols(df, prediction_rosebud.yield_date, prediction_rosebud.add_realtime_price_if_missing)
 
     logger.info(f"len with symbols: {df_symbol_on_date.shape[0]}")
 
@@ -64,19 +96,34 @@ class StockService:
 
     logger.info(f"len dt filtered with symbols: {df_date_filtered.shape[0]}")
 
-    df_date_filtered = df_date_filtered.sort_values(by=['date'], inplace=False)
+    # df_val_exch = TickerService.filter_by_valid_stock_exchange(df_date_filtered)
+    # logger.info(f"len dt filtered by exchange: {df_val_exch.shape[0]}")
+    # df_in_rt = cls.filter_by_avail_from_realtime_source(df_val_exch)
 
-    df_grouped = df_date_filtered.groupby('ticker')
+    tick_exch = TickerService.get_tickers_list()
+    tick_rt = RealtimeEquityPriceService.get_ticker_list_from_file()
+    valid_tickers = list(set(tick_exch).intersection(tick_rt))
+    df_sym_filtered = df_date_filtered[df_date_filtered['ticker'].isin(valid_tickers)]
 
-    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x, volatility_min=volatility_min))
+    logger.info(f"len dt filtered by realtime price service availability: {df_sym_filtered.shape[0]}")
 
-    # This should be lpwer down after the basic filtering.
-    if get_realtime_price_if_today_missing and EquityUtilService.is_missing_today(df_g_filtered):
-      # Get realtime price and add to df (spark?)
-      raise Exception("Not yet implemented.")
-      pass
+    amount_to_spend = prediction_rosebud.amount_to_spend
+    num_days_avail = prediction_rosebud.num_days_to_sample
+    min_price = prediction_rosebud.min_price
+    volatility_min = prediction_rosebud.volatility_min
+
+    df_grouped = df_sym_filtered.groupby('ticker')
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend=amount_to_spend, num_days_avail=num_days_avail,
+                                                                                                min_price=min_price, ticker_group=x,
+                                                                                                volatility_min=volatility_min))
+    logger.info(f"len dt filtered by basic criterium: {df_g_filtered.shape[0]}")
+
+    if prediction_rosebud.add_realtime_price_if_missing and EquityUtilService.is_missing_today(df_g_filtered):
+      df_g_filtered = EquityUtilService.add_realtime_price(df_g_filtered)
 
     logger.info(f"len final filters: {df_g_filtered.shape[0]}")
+
+    df_g_filtered.sort_values(by=['date'], inplace=True)
 
     return df_g_filtered
 
@@ -99,12 +146,26 @@ class StockService:
     delta = latest_date - earliest_date
     logger.info(f"Total years spanned by initial data load. {delta.days / 365}")
 
-    df_grouped = df_date_filtered.groupby('ticker')
-    # df_g_sorted = df_grouped.sort_values(by=['date'], inplace=False)
+    df_val_exch = TickerService.filter_by_valid_stock_exchange(df_date_filtered)
+    logger.info(f"After exchange filter: {df_val_exch.shape[0]}")
+
+    df_in_rt = cls.filter_by_avail_from_realtime_source(df_val_exch)
+    logger.info(f"After RT Source filter: {df_in_rt.shape[0]}")
+
+    df_grouped = df_in_rt.groupby('ticker')
 
     df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x, volatility_min=volatility_min))
+    logger.info(f"After basic crit filter: {df_g_filtered.shape[0]}")
 
     return df_g_filtered
+
+  @classmethod
+  def filter_by_avail_from_realtime_source(cls, df: pd.DataFrame):
+    tickers = RealtimeEquityPriceService.get_ticker_list_from_file()
+
+    logger.info(f"Number of tickers to filter by: {len(tickers)}")
+
+    return df[df['ticker'].isin(tickers)]
 
   @classmethod
   def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
@@ -115,7 +176,9 @@ class StockService:
     num_days_avail = trading_days_span
 
     os.makedirs(output_dir, exist_ok=True)
-    df_g_filtered = cls.get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, sample_file_size)
+    df_g_filtered = cls.get_and_prep_equity_data(amount_to_spend=amount_to_spend, num_days_avail=num_days_avail,
+                                                 min_price=min_price, volatility_min=volatility_min,
+                                                 start_date=start_date, end_date=end_date)
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 

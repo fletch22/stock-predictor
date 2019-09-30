@@ -31,7 +31,8 @@ def get_shar_equity_data(sample_file_size: SampleFileTypeSize = SampleFileTypeSi
   if sample_file_size == SampleFileTypeSize.SMALL:
     file_path = config.constants.SHAR_EQUITY_PRICES_SHORT
   df = pd.read_csv(file_path)
-  return df.sort_values(by=['date'], inplace=False)
+  df.sort_values(by=['date'], inplace=True)
+  return df
 
 
 def merge_shar_equity_price_data(df_base: pd.DataFrame):
@@ -50,9 +51,14 @@ def merge_shar_equity_price_data(df_base: pd.DataFrame):
   for supp in supp_files:
     logger.info(f"Adding {os.path.basename(supp)}.")
     df_supp = pd.read_csv(supp)
+
+    if df_supp.shape[0] == 0:
+      logger.info(f"Supplemental file has no data. Market closed day? About to delete supplemental file '{supp}'.")
+      os.remove(supp)
+
     df_supp.sort_values(by=sort_crit, inplace=True)
 
-    df_merged = pd.concat([df_merged, df_supp], ignore_index=False, sort=False)
+    df_merged = pd.concat([df_merged, df_supp], ignore_index=True, sort=False)
 
     logger.info(f"df_merged size: {df_merged.shape[0]}")
 

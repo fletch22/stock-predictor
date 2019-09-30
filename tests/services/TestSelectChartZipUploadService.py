@@ -16,7 +16,6 @@ from services.CloudFileService import CloudFileService
 from services.EquityUtilService import EquityUtilService
 from services.SampleFileTypeSize import SampleFileTypeSize
 from services.SelectChartZipUploadService import SelectChartZipUploadService
-from services.SparkRenderImages import SparkRenderImages
 from services.StockService import StockService
 from utils import date_utils
 

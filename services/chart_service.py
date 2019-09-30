@@ -1,5 +1,6 @@
 import os
 import random
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +9,7 @@ from PIL import Image
 from pyspark import SparkFiles
 
 from config import logger_factory
+from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
 
@@ -41,7 +43,8 @@ def get_random_assembly_indices_from_df(df, amount=0):
   return rand_symbols
 
 
-def save_data_as_chart(symbol: str, category: str, df: pd.DataFrame, yield_date_str: str, save_dir: str, translate_save_path_hdfs=False):
+def save_data_as_chart(symbol: str, category: str, df: pd.DataFrame, yield_date: datetime, save_dir: str, translate_save_path_hdfs=False):
+  yield_date_str = date_utils.get_standard_ymd_format(yield_date)
   filename_prefix = f"{category}_{symbol}_{yield_date_str}"
 
   save_vanilla_chart_to_filename(df, save_dir, filename_prefix, translate_save_path_hdfs)
@@ -70,9 +73,10 @@ def save_vanilla_chart_to_filename(df_assembly: pd.DataFrame, save_dir: str, fil
   plt.savefig(save_path, bbox_inches='tight', pad_inches=0, transparent=False)
 
 
-def save_decorated_chart_to_filename(df: pd.DataFrame, fundy: dict, category: str, symbol: str, yield_date_str: str,
+def save_decorated_chart_to_filename(df: pd.DataFrame, fundy: dict, category: str, symbol: str, yield_date: datetime,
                                      save_dir: str, translate_save_path_hdfs=False):
   plt = render_decorated_chart(df, fundy=fundy)
+  yield_date_str = date_utils.get_standard_ymd_format(yield_date)
 
   filename = f"{category}_{symbol}_{yield_date_str}.png"
   save_path = os.path.join(save_dir, filename)

@@ -3,6 +3,7 @@ import random
 import statistics
 from datetime import datetime
 from statistics import mean
+from typing import List
 
 from google.cloud import automl_v1beta1 as automl
 
@@ -11,7 +12,9 @@ from config import logger_factory
 from services import file_services
 from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
+from services.RealtimeEquityPriceService import RealtimeEquityPriceService
 from services.StockService import StockService
+from services.TickerService import TickerService
 from services.spark import spark_predict
 from utils import date_utils
 
@@ -30,12 +33,25 @@ class AutoMlPredictionService():
     self.package_dir = package_dir
     self.short_model_id = short_model_id
 
-  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
+  # Example Returns:  List of row = {
+  #     "symbol": symbol,
+  #     "image_path": image_path,
+  #     "date": None,
+  #     "category_actual": category_actual,
+  #     "category_predicted": None,
+  #     "score": None,
+  #     "model_full_id": model_full_id
+  #   }
+  def predict(self, task_dir: str, image_dir: str, std_min: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
     file_paths = file_services.walk(image_dir)
     random.shuffle(file_paths, random.random)
 
     if max_files > -1 and len(file_paths) > max_files:
       file_paths = file_paths[:max_files]
+
+    tick_exch = TickerService.get_tickers_list()
+    tick_rt = RealtimeEquityPriceService.get_ticker_list_from_file()
+    valid_tickers = list(set(tick_exch).intersection(tick_rt))
 
     # Act
     image_info = []
@@ -43,17 +59,17 @@ class AutoMlPredictionService():
       category_actual, symbol, yield_date_str = EquityUtilService.get_info_from_file_path(f)
       yield_date = date_utils.parse_datestring(yield_date_str)
 
-      # df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs_path=False)
-      # df_dt_filtered = StockService.filter_dataframe_by_date(df, start_date=None, end_date=yield_date)
-      # df_curt = df_dt_filtered.iloc[-1000:,:]
-      # std = 0
-      # if df_curt.shape[0] > 1:
-      #   std = statistics.stdev(df_curt['close'].values.tolist())
+      df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs_path=False)
+      df_dt_filtered = StockService.filter_dataframe_by_date(df, start_date=None, end_date=yield_date)
+      df_curt = df_dt_filtered.iloc[-1000:, :]
+      std = 0
+      if df_curt.shape[0] > 1:
+        std = statistics.stdev(df_curt['close'].values.tolist())
 
       if start_sample_date is None:
         start_sample_date = date_utils.parse_datestring('1000-01-01')
 
-      if yield_date > start_sample_date:
+      if symbol in valid_tickers and yield_date > start_sample_date and std < std_min:
         logger.info(f"{symbol} using yield date {yield_date_str}")
         image_info.append({"category_actual": category_actual,
                            "symbol": symbol,
@@ -63,8 +79,23 @@ class AutoMlPredictionService():
                            "purged_cached": purge_cached,
                            })
 
-    results = spark_predict.get_spark_results(image_info, task_dir)
+    return spark_predict.get_spark_results(image_info, task_dir)
 
+  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, std_min: float, max_files: int=-1, purge_cached: bool = False, start_sample_date: datetime=None):
+    results = self.predict(task_dir=task_dir, image_dir=image_dir, std_min=std_min, max_files=max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
+
+    return self.calculate_mean_accuracy(results=results, sought_gain_frac=sought_gain_frac)
+
+  # Example results:  List of row = {
+  #     "symbol": symbol,
+  #     "image_path": image_path,
+  #     "date": None,
+  #     "category_actual": category_actual,
+  #     "category_predicted": None,
+  #     "score": None,
+  #     "model_full_id": model_full_id
+  #   }
+  def calculate_mean_accuracy(self, results: List, sought_gain_frac: float):
     logger.info(f"Results: {len(results)}")
 
     unique_symbols = set()
@@ -105,7 +136,7 @@ class AutoMlPredictionService():
     mean_frac = 0
     if total_samples > 0:
       mean_frac = mean(aggregate_gain)
-      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean frac: {mean_frac}; total: {invest_amount}")
+      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean M: {mean_frac}; total: {invest_amount}")
     else:
       logger.info("No samples to calculate.")
 

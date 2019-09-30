@@ -1,10 +1,14 @@
 from datetime import datetime
 from unittest import TestCase
 
+import pandas as pd
+
+from config import logger_factory
 from services import eod_data_service
 from services.EquityUtilService import EquityUtilService
 from utils import date_utils
-import pandas as pd
+
+logger = logger_factory.create_logger(__name__)
 
 
 class TestEquityUtilService(TestCase):

@@ -344,3 +344,5 @@ Status:
 
 6. Good performance on test_predict_and_calculate (mixing model with diff rendered chart)
 
+7. Note better performance was gleaned with Rosebud when, at PAC time, volatility_min was set to ~2.0.
+        short_model_id = "ICN5283794452616644197" # volreq_fil_09_22_v20190923042914 7/17-8/30: 0.2637%

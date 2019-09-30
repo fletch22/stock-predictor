@@ -117,7 +117,7 @@ class TestStockService(TestCase):
                                                        num_days_avail=num_days_avail,
                                                        min_price=min_price,
                                                        yield_date=yield_date,
-                                                       volatility_min=volatility_min)
+                                                       volatility_min=volatility_min, add_realtime_price_if_today_missing=False)
 
     # Assert
     df_temp_count = df[df['date'] <= yield_date_str]

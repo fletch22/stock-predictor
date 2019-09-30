@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import string
@@ -25,6 +26,7 @@ make_dir(APP_FIN_OUTPUT_DIR)
 
 QUANDL_DIR = os.path.join(FINANCE_DATA_DIR, "quandl")
 QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
+
 SHAR_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices")
 SHAR_DAILY = os.path.join(QUANDL_TBLS_DIR, "shar_daily.csv")
 SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2019-09-15.csv")
@@ -32,6 +34,10 @@ SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_pr
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medlist.csv")
 SHAR_CORE_FUNDAMENTALS = os.path.join(QUANDL_TBLS_DIR, 'shar_core_fundamentals.csv')
+SHAR_TICKERS = os.path.join(QUANDL_TBLS_DIR, "shar_tickers.csv")
+
+WORLD_TRADING_DIR = os.path.join(FINANCE_DATA_DIR, "world_trading_data", "tables")
+WTD_STOCK_LIST_PATH = os.path.join(WORLD_TRADING_DIR, "worldtradingdata-stocklist.csv")
 
 SHAR_SPLIT_EQUITY_EOD_DIR = os.path.join(QUANDL_TBLS_DIR, "splits_eod")
 make_dir(SHAR_SPLIT_EQUITY_EOD_DIR)
@@ -87,3 +93,7 @@ make_dir(TEST_PACKAGE_FOLDER)
 
 IS_IN_SPARK_CONTEXT = False
 SPARK_LOGGING_PATH = None
+
+alpaca_cred_path = os.path.join(CREDENTIALS_ROOT, 'alpaca.json')
+with open(alpaca_cred_path, "r") as f:
+  ALPACA_CREDENTIALS = json.loads(f.read())

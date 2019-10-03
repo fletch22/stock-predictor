@@ -53,7 +53,7 @@ class TestStockService(TestCase):
     # Arrange
     df = eod_data_service.get_shar_equity_data(sample_file_size=SampleFileTypeSize.SMALL)
     symbol = "AAPL"
-    yield_date = date_utils.parse_datestring("2019-06-14")
+    yield_date = date_utils.parse_std_datestring("2019-06-14")
 
     # Act
     eod_info = StockService.get_eod_of_date(symbol, yield_date)
@@ -90,13 +90,13 @@ class TestStockService(TestCase):
     df = eod_data_service.get_shar_equity_data()
 
     df_day_before = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-01") & (df["date"] <= "2013-01-31")]
-    date_before = date_utils.parse_datestring("2013-02-01")
+    date_before = date_utils.parse_std_datestring("2013-02-01")
     eod_data_before = StockService.get_eod_of_date(symbol, date_before)
 
     logger.info(f"Close: {eod_data_before[Eod.CLOSE]}")
 
     df_yield_day = df[(df["ticker"] == symbol) & (df["date"] >= "2013-01-15") & (df["date"] <= "2013-02-01")]
-    date_yield_day = date_utils.parse_datestring("2013-02-01")
+    date_yield_day = date_utils.parse_std_datestring("2013-02-01")
     eod_data = StockService.get_eod_of_date(symbol, date_yield_day)
 
     logger.info(f"Bet_price: {eod_data['bet_price']}")
@@ -109,7 +109,7 @@ class TestStockService(TestCase):
     amount_to_spend = 25000
     num_days_avail = 1000
     yield_date_str = "2019-08-15"
-    yield_date = date_utils.parse_datestring(yield_date_str)
+    yield_date = date_utils.parse_std_datestring(yield_date_str)
     volatility_min = 2.79
 
     # Act

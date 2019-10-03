@@ -57,7 +57,7 @@ class AutoMlPredictionService():
     image_info = []
     for f in file_paths:
       category_actual, symbol, yield_date_str = EquityUtilService.get_info_from_file_path(f)
-      yield_date = date_utils.parse_datestring(yield_date_str)
+      yield_date = date_utils.parse_std_datestring(yield_date_str)
 
       df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs_path=False)
       df_dt_filtered = StockService.filter_dataframe_by_date(df, start_date=None, end_date=yield_date)
@@ -67,7 +67,7 @@ class AutoMlPredictionService():
         std = statistics.stdev(df_curt['close'].values.tolist())
 
       if start_sample_date is None:
-        start_sample_date = date_utils.parse_datestring('1000-01-01')
+        start_sample_date = date_utils.parse_std_datestring('1000-01-01')
 
       if symbol in valid_tickers and yield_date > start_sample_date and std < std_min:
         logger.info(f"{symbol} using yield date {yield_date_str}")
@@ -113,7 +113,7 @@ class AutoMlPredictionService():
     invest_amount = 10000
 
     for r in results_filtered_1:
-      eod_info = StockService.get_eod_of_date(r["symbol"], date_utils.parse_datestring(r["date"]))
+      eod_info = StockService.get_eod_of_date(r["symbol"], date_utils.parse_std_datestring(r["date"]))
       bet_price = eod_info["bet_price"]
       high = eod_info["high"]
       close = eod_info[Eod.CLOSE]
@@ -126,7 +126,7 @@ class AutoMlPredictionService():
       open = eod_info['open']
 
       count_yielded, invest_amount, aggregate_gain = self.calc_frac_gain(aggregate_gain, bet_price, category_actual, category_predicted, open, high, low, close, count_yielded, invest_amount, max_drop, score,
-                                                                         sought_gain_frac, symbol, date_utils.parse_datestring(yield_date_str))
+                                                                         sought_gain_frac, symbol, date_utils.parse_std_datestring(yield_date_str))
 
     for n in aggregate_gain:
       logger.info(n)

@@ -27,7 +27,7 @@ class TestChartServices(TestCase):
     df = pd.read_csv(file_path)
 
     save_dir = os.path.join(config.constants.CACHE_DIR)
-    yield_date = date_utils.parse_datestring("2019-09-01")
+    yield_date = date_utils.parse_std_datestring("2019-09-01")
 
     # Act
     chart_service.save_data_as_chart("ibm", BinaryCategoryType.ONE, df, yield_date, save_dir, translate_save_path_hdfs=False)

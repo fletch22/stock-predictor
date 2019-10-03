@@ -75,7 +75,7 @@ def find_and_download_missing_days(df: pd.DataFrame, until_date: datetime):
   df.sort_values(by=['date'], inplace=True)
 
   end_date_str = df.iloc[-1, :]["date"]
-  end_date = date_utils.parse_datestring(end_date_str)
+  end_date = date_utils.parse_std_datestring(end_date_str)
 
   next_date = end_date + timedelta(days=1)
 

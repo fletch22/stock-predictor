@@ -44,3 +44,5 @@ tqdm==4.34.0
 scikit-learn==0.15.0
 urllib3==1.24.3
 alpaca-trade-api==0.39
+slackclient==2.2.0
+schedule==0.6.0

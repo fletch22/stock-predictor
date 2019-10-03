@@ -17,7 +17,7 @@ class TestEquityUtilService(TestCase):
   def test_find_missing_days(self):
     df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
-    end_date = date_utils.parse_datestring("2019-06-14")
+    end_date = date_utils.parse_std_datestring("2019-06-14")
     until_date = end_date + timedelta(days=3)
     missing = eod_data_service.find_and_download_missing_days(df, until_date)
 
@@ -62,7 +62,7 @@ class TestEquityUtilService(TestCase):
 
   def test_select_single_day_equity_data(self):
     # Arrange
-    yield_date = date_utils.parse_datestring('2019-08-16')
+    yield_date = date_utils.parse_std_datestring('2019-08-16')
     trading_days_avail = 1000
     min_price = 5.0
     amount_to_spend = 25000
@@ -101,7 +101,7 @@ class TestEquityUtilService(TestCase):
 
     df = df[df['ticker'].isin(symbols)]
 
-    ibm_info = RealtimeEquityPriceService.get_prices(symbols=['IBM'])[0]
+    ibm_info = RealtimeEquityPriceService.get_equities(symbols=['IBM'])[0]
     ibm_price_expected = float(ibm_info['price'])
 
     # Act

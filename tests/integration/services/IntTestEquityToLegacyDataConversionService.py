@@ -11,7 +11,7 @@ class TestEquityToLegacyDataConversionService(TestCase):
   def test_get_symbol(self):
     # Arrange
     num_records = 253 * 2
-    latest_date = date_utils.parse_datestring('2019-05-23')
+    latest_date = date_utils.parse_std_datestring('2019-05-23')
 
     # Act
     df = EquityToLegacyDataConversionService.get_symbol("GOOG", num_records=num_records, latest_date=latest_date)
@@ -27,7 +27,7 @@ class TestEquityToLegacyDataConversionService(TestCase):
   def test_get_many_symbols(self):
     # Arrange
     num_records = 253 * 2
-    latest_date = date_utils.parse_datestring('2019-05-23')
+    latest_date = date_utils.parse_std_datestring('2019-05-23')
 
     symbols = ['GOOG',
      'FB',

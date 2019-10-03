@@ -20,8 +20,8 @@ class TestSparkGetFundamentals(TestCase):
     symbol_info["symbol"] = symbol
     symbol_info["offsets"] = [100, second_offset]
     symbol_info['trading_days_span'] = 1000
-    symbol_info["start_date"] = date_utils.parse_datestring("2013-01-02")
-    symbol_info["end_date"] = date_utils.parse_datestring("2019-01-02")
+    symbol_info["start_date"] = date_utils.parse_std_datestring("2013-01-02")
+    symbol_info["end_date"] = date_utils.parse_std_datestring("2019-01-02")
     symbol_info["desired_fundamentals"] = ['pe', 'ev', 'eps']
 
     # Act
@@ -56,8 +56,8 @@ class TestSparkGetFundamentals(TestCase):
     symbol_info["symbol"] = symbol
     symbol_info["offsets"] = [100, second_offset]
     symbol_info['trading_days_span'] = 1000
-    symbol_info["start_date"] = date_utils.parse_datestring("2013-01-02")
-    symbol_info["end_date"] = date_utils.parse_datestring("2019-01-02")
+    symbol_info["start_date"] = date_utils.parse_std_datestring("2013-01-02")
+    symbol_info["end_date"] = date_utils.parse_std_datestring("2019-01-02")
     symbol_info["desired_fundamentals"] = ['pe', 'ev', 'eps']
 
     results = spark_get_fundamentals.spark_process_sample_info(symbol_info)

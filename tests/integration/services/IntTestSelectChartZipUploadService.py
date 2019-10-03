@@ -26,7 +26,7 @@ class TestSelectChartZipUploadService(TestCase):
     prediction_rosebud.chart_type = ChartType.Neopolitan
     prediction_rosebud.chart_mode = ChartMode.BackTest
     prediction_rosebud.volatility_min = 2.80
-    prediction_rosebud.yield_date = date_utils.parse_datestring("2019-07-18")
+    prediction_rosebud.yield_date = date_utils.parse_std_datestring("2019-07-18")
     prediction_rosebud.add_realtime_price_if_missing = False
 
     df, package_path, image_dir = SelectChartZipUploadService.select_and_process_one_day(prediction_rosebud=prediction_rosebud)

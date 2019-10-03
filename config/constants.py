@@ -97,3 +97,13 @@ SPARK_LOGGING_PATH = None
 alpaca_cred_path = os.path.join(CREDENTIALS_ROOT, 'alpaca.json')
 with open(alpaca_cred_path, "r") as f:
   ALPACA_CREDENTIALS = json.loads(f.read())
+
+slack_cred_path = os.path.join(CREDENTIALS_ROOT, 'slack.json')
+with open(slack_cred_path, "r") as f:
+  SLACK_CREDENTIALS = json.loads(f.read())
+
+BET_HISTORY_DIR = os.path.join(APP_FIN_OUTPUT_DIR, APP_NAME, "bet")
+make_dir(BET_HISTORY_DIR)
+BET_HIST_CSV_PATH = os.path.join(BET_HISTORY_DIR, "bet_history.csv")
+
+

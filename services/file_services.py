@@ -30,7 +30,7 @@ def get_filename_info(filepath):
   return {
     "category": category,
     "symbol": symbol,
-    "date": date_utils.parse_datestring(datestr)
+    "date": date_utils.parse_std_datestring(datestr)
   }
 
 def create_unique_file_system_name(parent_dir: str, prefix: str, extension: str=None):

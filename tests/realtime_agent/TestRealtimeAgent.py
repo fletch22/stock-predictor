@@ -24,7 +24,7 @@ class TestRealtimeAgent(TestCase):
     desired_trading_days = 253 * 2
 
     num_symb_desired = 200
-    latest_date = date_utils.parse_datestring("2019-05-23")
+    latest_date = date_utils.parse_std_datestring("2019-05-23")
 
     symbol = "googl"
     # symbols = [symbol]
@@ -45,7 +45,7 @@ class TestRealtimeAgent(TestCase):
   def test_get_random_symbols(self):
     # Arrange
     num_desired = 10
-    end_date = date_utils.parse_datestring("2019-05-23")
+    end_date = date_utils.parse_std_datestring("2019-05-23")
     desired_trading_days = 253 * 2
 
     symbols = StockService.get_random_symbols_with_date(num_desired, desired_trading_days=desired_trading_days, end_date=end_date)

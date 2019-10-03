@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from stopwatch import Stopwatch
 
@@ -9,6 +10,7 @@ from config.logger_factory import logger_factory
 from prediction.PredictionRosebud import PredictionRosebud
 from services.AutoMlPredictionService import AutoMlPredictionService
 from services.SelectChartZipUploadService import SelectChartZipUploadService
+from services.SlackService import SlackService
 from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)
@@ -48,8 +50,7 @@ def predict(short_model_id: str, prediction_rosebud: PredictionRosebud, std_min:
   return df, package_dir, image_dir, pred_symbols
 
 
-
-if __name__ == '__main__':
+def current_rosebud_predictor():
   short_model_id = "ICN5283794452616644197"  # volreq_fil_09_22_v20190923042914
 
   prediction_rosebud = PredictionRosebud()
@@ -63,7 +64,7 @@ if __name__ == '__main__':
   prediction_rosebud.volatility_min = 2.79
   prediction_rosebud.chart_type = ChartType.Neopolitan
   prediction_rosebud.chart_mode = ChartMode.Prediction
-  prediction_rosebud.yield_date = date_utils.parse_datestring('2019-09-27')
+  prediction_rosebud.yield_date = datetime.now() # date_utils.parse_std_datestring('2019-09-27')
   prediction_rosebud.add_realtime_price_if_missing = True
 
   std_min = 2.0
@@ -76,3 +77,11 @@ if __name__ == '__main__':
   df, task_dir, image_dir, pred_symbols = predict(short_model_id=short_model_id, prediction_rosebud=prediction_rosebud, std_min=std_min)
 
   logger.info(f"Created in {image_dir}.")
+
+  slack_service = SlackService()
+  slack_service.send_direct_message_to_chris(", ".join(pred_symbols))
+
+  return pred_symbols
+
+if __name__ == '__main__':
+  current_rosebud_predictor()

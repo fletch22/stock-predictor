@@ -140,8 +140,8 @@ class StockService:
     end_date_string = df_date_filtered["date"].to_list()[-1]
     logger.info(f"Latest date in data set: {end_date_string}")
 
-    earliest_date = date_utils.parse_datestring(earliest_date_string)
-    latest_date = date_utils.parse_datestring(end_date_string)
+    earliest_date = date_utils.parse_std_datestring(earliest_date_string)
+    latest_date = date_utils.parse_std_datestring(end_date_string)
 
     delta = latest_date - earliest_date
     logger.info(f"Total years spanned by initial data load. {delta.days / 365}")
@@ -262,9 +262,11 @@ class StockService:
   @classmethod
   def get_sample_infos_one_day(cls, df_g_filtered: DataFrame, num_days_avail: int, min_samples: int, start_date: datetime, yield_date: datetime, translate_file_path_to_hdfs=False):
     symbols = df_g_filtered["ticker"].unique().tolist()
+    symbols = [s for s in symbols if str(s) != 'nan']
 
     assemblies = {}
     for symb in symbols:
+      logger.info(F"Getting sample info for one day for symbol {symb}.")
       df_g_symbol = cls.get_symbol_df(symb, translate_file_path_to_hdfs)
       df_date_filtered = StockService.filter_dataframe_by_date(df_g_symbol, start_date, yield_date)
 
@@ -393,7 +395,7 @@ class StockService:
 
       bet_date_str = df.iloc[-2, :]["date"]
       yield_date_str = df_yield_day["date"]
-      yield_date = date_utils.parse_datestring(yield_date_str)
+      yield_date = date_utils.parse_std_datestring(yield_date_str)
       logger.debug(f"{symbol}: dates: {bet_date_str}; {yield_date_str}; {bet_price}; {df_yield_day['high']}")
 
       open = df_yield_day["open"]
@@ -429,7 +431,7 @@ class StockService:
       # then we know the available records abuts the end date;
       if df.shape[0] > 0:
         last_date_str = df.iloc[-1]['date']
-        last_date = date_utils.parse_datestring(last_date_str)
+        last_date = date_utils.parse_std_datestring(last_date_str)
         must_exist_date = last_date - timedelta(days=6)
         must_exist_date_str = date_utils.get_standard_ymd_format(must_exist_date)
         df_has_end_date = df[df['date'] >= must_exist_date_str]

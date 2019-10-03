@@ -15,8 +15,8 @@ class TestStockDownloadService(TestCase):
     # Arrange
     expected_start_date_str = "2019-07-18"
     expected_end_date_str = "2019-07-19"
-    start_date = date_utils.parse_datestring(expected_start_date_str)
-    end_date = date_utils.parse_datestring(expected_end_date_str)
+    start_date = date_utils.parse_std_datestring(expected_start_date_str)
+    end_date = date_utils.parse_std_datestring(expected_end_date_str)
 
     destination_path = os.path.join(config.constants.CACHE_DIR, "test_download_sep.csv")
     # Act

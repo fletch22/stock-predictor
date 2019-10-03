@@ -16,7 +16,7 @@ class TestStockService(TestCase):
       df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
       expected_date = '2019-06-15'
-      target_date = date_utils.parse_datestring(expected_date)
+      target_date = date_utils.parse_std_datestring(expected_date)
 
       # Act
       df_filtered, date_str_used = StockService.filter_by_recent_symbols(df, target_date=target_date, get_most_recent_prev_date=False)
@@ -29,7 +29,7 @@ class TestStockService(TestCase):
     # Arrange
     df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
-    target_date = date_utils.parse_datestring('2019-06-15')
+    target_date = date_utils.parse_std_datestring('2019-06-15')
 
     # Act
     df_filtered, date_str_used = StockService.filter_by_recent_symbols(df, target_date=target_date, get_most_recent_prev_date=True)
@@ -44,7 +44,7 @@ class TestStockService(TestCase):
     df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
     date_str_expected = '2019-06-14'
-    target_date = date_utils.parse_datestring(date_str_expected)
+    target_date = date_utils.parse_std_datestring(date_str_expected)
 
     # Act
     df_filtered, date_str_actual = StockService.filter_by_recent_symbols(df, target_date=target_date, get_most_recent_prev_date=False)
@@ -58,7 +58,7 @@ class TestStockService(TestCase):
     df = eod_data_service.get_shar_equity_data(SampleFileTypeSize.SMALL)
 
     date_str_expected = '2019-06-23'
-    target_date = date_utils.parse_datestring(date_str_expected)
+    target_date = date_utils.parse_std_datestring(date_str_expected)
 
     # Act
     df_filtered, date_str_actual = StockService.filter_by_recent_symbols(df, target_date=target_date, get_most_recent_prev_date=True)

@@ -86,7 +86,7 @@ def pred_images_from_folder(short_model_id, package_folder):
   score_threshold = .50
   purge_cached = False
   std_min = 5.0
-  start_sample_date = date_utils.parse_datestring("2019-07-17")
+  start_sample_date = date_utils.parse_std_datestring("2019-07-17")
 
   auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=data_cache_dir, score_threshold=score_threshold)
 

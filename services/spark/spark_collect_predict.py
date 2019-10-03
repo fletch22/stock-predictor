@@ -194,7 +194,7 @@ def spark_process(thing_dict):
 
     yield_date_str = prediction['date']
     if yield_date_str is not None:
-      bet_date = date_utils.parse_datestring(yield_date_str) - timedelta(days=1)
+      bet_date = date_utils.parse_std_datestring(yield_date_str) - timedelta(days=1)
       df_yield_date = df[df['date'] == yield_date_str]
 
       prediction["high"] = df_yield_date['high'].values[0]

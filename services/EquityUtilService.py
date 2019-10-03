@@ -2,6 +2,7 @@ import os
 import random
 import statistics
 from datetime import datetime, timedelta
+from typing import List
 
 import pandas as pd
 import numpy as np
@@ -39,7 +40,7 @@ class EquityUtilService:
 
     yield_high_price = df_tailed.iloc[-1]['high']
     yield_date_str = df_tailed.iloc[-1]["date"]
-    yield_date = date_utils.parse_datestring(yield_date_str)
+    yield_date = date_utils.parse_std_datestring(yield_date_str)
 
     category = BinaryCategoryType.UNKNOWN
     if chart_mode == ChartMode.BackTest:
@@ -168,28 +169,22 @@ class EquityUtilService:
 
     logger.info(f"Symbols: {len(symbols)}: {symbols}")
 
-    equity_info = RealtimeEquityPriceService.get_prices(symbols=symbols)
+    rt_equity_info_list = RealtimeEquityPriceService.get_and_clean_realtime_equities(symbols)
 
-    today = date_utils.get_standard_ymd_format(datetime.now())
+    row_list = []
+    for ei in rt_equity_info_list:
+      date_str = date_utils.get_standard_ymd_format(ei.last_trade_time)
 
-    prices = []
-    for ei in equity_info:
-      volume_str = ei['volume']
-      volume = 0 if volume_str == 'N/A' else float(volume_str)
-      new_close = float(ei['price'])
-      row = {'ticker': ei['symbol'], 'date': today, 'open': float(ei['price_open']),
-             'high': float(ei['day_high']), 'low': float(ei['day_low']),
-             'close': new_close, 'volume': volume, 'dividends': np.NaN, 'closeunadj': new_close, 'lastupdated': today}
-      prices.append(row)
+      if np.isnan(ei.current_price):
+        logger.info(f"Current price is nan. Removing symbol {ei.symbol} from dataframe.")
+        df = df[~df['ticker'].isin([ei.symbol])]
+      else:
+        row = {'ticker': ei.symbol, 'date': date_str, 'open': ei.open,
+               'high': ei.high_to_date, 'low': ei.low_to_date,
+               'close': ei.current_price, 'volume': ei.volume_to_date, 'dividends': np.NaN, 'closeunadj': ei.current_price, 'lastupdated': date_str}
+        row_list.append(row)
 
-    df_today = pd.DataFrame(prices)
+    df_today = pd.DataFrame(rt_equity_info_list)
     df_merged = pd.concat([df, df_today], ignore_index=True, sort=False)
 
     return df_merged
-
-
-
-
-
-
-

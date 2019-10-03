@@ -85,7 +85,7 @@ def spark_process_sample_info(symbol_info: Dict) -> Dict:
 
     logger.info(f"bet date: {bet_date_str}")
 
-    bet_date = date_utils.parse_datestring(bet_date_str)
+    bet_date = date_utils.parse_std_datestring(bet_date_str)
 
     fundies = equity_fundamentals_service.get_multiple_values(symbol, bet_date, desired_fundamentals, df=None, translate_to_hdfs=translate_to_hdfs)
 

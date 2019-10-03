@@ -19,7 +19,7 @@ class TestPredictHoldoutDataService(TestCase):
 
     # Act
     for yield_date_str in yield_date_strs:
-      yield_date = date_utils.parse_datestring(yield_date_str)
+      yield_date = date_utils.parse_std_datestring(yield_date_str)
       image_dir = PredictHoldoutDataService.get_predictions_on_date(yield_date, short_model_id=short_model_id, start_sample_date=None)
 
       # Assert

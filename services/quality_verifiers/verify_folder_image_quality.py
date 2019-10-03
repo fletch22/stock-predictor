@@ -31,8 +31,8 @@ def verify():
 
     logger.info(f"{symbol}; date: {date_str}")
 
-    yield_date = date_utils.parse_datestring(date_str)
-    bet_date = date_utils.parse_datestring(date_str) + timedelta(days=-1)
+    yield_date = date_utils.parse_std_datestring(date_str)
+    bet_date = date_utils.parse_std_datestring(date_str) + timedelta(days=-1)
 
     price_data = RealtimeEquityPriceService.get_historical_price(symbol, start_date=bet_date, end_date=yield_date)
 

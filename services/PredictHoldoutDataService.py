@@ -61,7 +61,7 @@ class PredictHoldoutDataService():
 
     image_dirs = []
     for date_str in holdout_dates:
-      dt = date_utils.parse_datestring(date_str)
+      dt = date_utils.parse_std_datestring(date_str)
       image_dirs.append(cls.get_predictions_on_date(dt, short_model_id, None, add_realtime_price_if_missing=False))
 
 

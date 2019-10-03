@@ -35,7 +35,7 @@ class TestFullDataEquityFundamentalsService(TestCase):
 
     efs.filter(['ibm', 'aapl', 'msft'])
 
-    end_date = date_utils.parse_datestring('2019-01-23')
+    end_date = date_utils.parse_std_datestring('2019-01-23')
 
     # Act
     stopwatch.start()

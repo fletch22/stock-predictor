@@ -21,7 +21,14 @@ def predict_and_calculate():
   # short_model_id = "ICN2383257928398147071" # vol_eq 65%
   # short_model_id = "ICN200769567050768296"  # voleq_rec Sept %
   # short_model_id = "ICN1127515596385130617" # voleq 2018-06-18 66%
-  short_model_id = "ICN5283794452616644197" # volreq_fil_09_22_v20190923042914 7/17-8/30: 0.2637%
+  # short_model_id = "ICN5283794452616644197" # volreq_fil_09_22_v20190923042914 7/17-8/30: 0.2637%
+  # short_model_id = "ICN8748316622033513158" # fiddy with 19 vol acc:62
+  # short_model_id = "ICN7150281105604556161" # deuce_eq min_price: mp: 5.0; mv: 2.79; sgp: 2.0; mv: 100000
+  # short_model_id = "ICN6329887226779646397" # deuce 1.1%; mp: 5.0; mv: 2.79; sgp: 2.0; mv: 100000
+  # short_model_id = "ICN323980058926307012" # tiny
+  # short_model_id = "ICN1872651771008733456" # tin_big; limited set
+  # short_model_id = "ICN7012160376262305340" # tin_big II;
+  short_model_id = "ICN2140008179580940274" # millville_1:
 
   package_folders = [
     # "process_2019-09-09_22-14-56-0.37",  # vanilla chart 8-15-2019: -0.004937923352530126,
@@ -57,11 +64,27 @@ def predict_and_calculate():
     # "process_2019-09-15_16-04-00-588.58",  # 7-19  -0.0027 / -0.00149 / 0.0052
     # "process_2019-09-15_16-00-11-48.41",  # 7-18  -0.0012 / -0.00095 /  0.0039
     # "process_2019-09-15_15-56-00-356.66",  # 7-17  -0.0022 / -0.0011 / 0
-    "process_2019-09-29_13-18-36-138.66", # fiddy with 19 stdev
+    # "process_2019-09-29_13-18-36-138.66", # fiddy with 19 stdev (with std_min = 5.0:, volume 100k. price>50.0 .27%-.4%
+    # "process_2019-10-05_20-26-42-487.36", # mp: 5.0; mv: 2.79; sgp: 2.0; mv: 100000
     # "process_2019-09-08_06-08-31-603.66", # 8-15-2019 24h multi3 57.5%
     # "process_2019-08-06_22-46-56-230.65", # vanilla chart
     # "process_2019-09-18_22-12-00-332.17", # voleq 06-18 66%
+    # "process_2019-10-06_17-26-47-73.01", # tiny; smid: "ICN323980058926307012"; sgf: .01; mp: 5.0; score_threshold: .88; roi: 0.00455
+    # "process_2019-10-07_22-13-33-758.15", # tin big; limited set; st: .50; roi: 1.7; st: 56: 2.39
+    "process_2019-10-07_22-25-00-943.35", # milleville:
   ]
+
+  # "process_2019-10-05_20-26-42-487.36",  # mp: 5.0; mv: 2.79; sgp: 2.0; mv: 100000
+  #   sought_gain_frac = .01; score_threshold = .50; std_min = 2.79; min_price = 10.00; min_volume = 100000: roi: .125% - seems random
+  # "process_2019-09-29_13-18-36-138.66",  # fiddy with 19 stdev (with std_min = 5.0:, volume 100k. price>50.0 .27%-.4%
+  #   sought_gain_frac = .01; score_threshold = .50; std_min = 5.0; min_price = 20.00; min_volume = 100000: 95/10000; roi: .234%
+  # "process_2019-10-07_22-13-33-758.15",
+  #   tin big; limited set; st: .50; roi: .17%; st: 56: stm: 2.39
+  #   tin big II; limited set; st: .80; 16/1000; roi: .60%; stm: 9999999:
+  #   tin big II; limited set; st: .70; 82/1000; roi: .17%; stm: 10:
+  # "process_2019-10-07_22-25-00-943.35":
+  #   millville: ICN2140008179580940274: 1427/10000: mp: 5.0; st: .5; stdmin: 9999999; roi: .015-0.023
+  #   millville: ICN2140008179580940274: 793/10000: mp: 5.0; st: .5; stdmin: 7.0; roi: 0.00307
 
   results = []
   for pf in package_folders:
@@ -83,17 +106,25 @@ def pred_images_from_folder(short_model_id, package_folder):
   # image_dir = os.path.join(data_cache_dir, "graphed")
 
   sought_gain_frac = .01
+  min_price = 5.00
   score_threshold = .50
+  std_min = 99999.0
+  min_volume = 1000
+  max_files = 10000
+  start_sample_date = None # date_utils.parse_std_datestring("2018-07-31")
+
   purge_cached = False
-  std_min = 5.0
-  start_sample_date = date_utils.parse_std_datestring("2019-07-17")
+
 
   auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=data_cache_dir, score_threshold=score_threshold)
 
   # Act
   stopwatch = Stopwatch()
   stopwatch.start()
-  roi = auto_ml_service.predict_and_calculate(package_folder, image_dir, sought_gain_frac, std_min=std_min, max_files=3000, purge_cached=purge_cached, start_sample_date=start_sample_date)
+  roi = auto_ml_service.predict_and_calculate(task_dir=package_folder, image_dir=image_dir,
+                                              min_price=min_price, min_volume=min_volume,
+                                              sought_gain_frac=sought_gain_frac, std_min=std_min,
+                                              max_files=max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
   stopwatch.stop()
 
   logger.info(f"Elapsed time: {round(stopwatch.duration / 60, 2)} minutes")

@@ -5,6 +5,7 @@ from unittest import TestCase
 
 import config
 from config import logger_factory
+from prediction.PredictionRosebud import PredictionRosebud
 from services import chart_service, file_services, eod_data_service
 from services.BasicSymbolPackage import BasicSymbolPackage
 from services.Eod import Eod
@@ -65,11 +66,19 @@ class TestStockService(TestCase):
 
   def test_get_sample_infos(self):
     # Arrange
-    amount_to_spend = 250
     num_days_avail = 2
     min_price = 5.0
-    volatility_min = 2.79
-    df_g_filtered = StockService.get_and_prep_equity_data(amount_to_spend, num_days_avail, min_price, volatility_min, SampleFileTypeSize.SMALL)
+    volatility_min = 10
+    min_volume = 100000
+    start_date = None
+    end_date = None
+
+    df_g_filtered = StockService.get_and_prep_equity_data(min_volume=min_volume,
+                                                          num_days_avail=num_days_avail,
+                                                          min_price=min_price,
+                                                          volatility_min=volatility_min,
+                                                          start_date=start_date,
+                                                          end_date=end_date)
 
     min_samples = 33
 
@@ -105,19 +114,15 @@ class TestStockService(TestCase):
 
   def test_get_and_prep_equity_data_one_day(self):
     # Arrange
-    min_price = 5.0
-    amount_to_spend = 25000
-    num_days_avail = 1000
+    prediction_rosebud = PredictionRosebud()
+    prediction_rosebud.min_price = 5.0
+    prediction_rosebud.num_days_avail = 1000
     yield_date_str = "2019-08-15"
-    yield_date = date_utils.parse_std_datestring(yield_date_str)
-    volatility_min = 2.79
+    prediction_rosebud.yield_date = date_utils.parse_std_datestring(yield_date_str)
+    prediction_rosebud.volatility_min = 2.79
 
     # Act
-    df = StockService.get_and_prep_equity_data_one_day(amount_to_spend=amount_to_spend,
-                                                       num_days_avail=num_days_avail,
-                                                       min_price=min_price,
-                                                       yield_date=yield_date,
-                                                       volatility_min=volatility_min, add_realtime_price_if_today_missing=False)
+    df = StockService.get_and_prep_equity_data_one_day(prediction_rosebud=prediction_rosebud)
 
     # Assert
     df_temp_count = df[df['date'] <= yield_date_str]

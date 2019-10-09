@@ -54,14 +54,14 @@ class EquityUtilService:
     return category, yield_date
 
   @classmethod
-  def filter_equity_basic_criterium(cls, amount_to_spend: float, num_days_avail: int, min_price: float, ticker_group: pd.DataFrame, volatility_min:float=1000):
+  def filter_equity_basic_criterium(cls, min_volume:int, num_days_avail: int, min_price: float, ticker_group: pd.DataFrame, volatility_min:float=1000):
     df = ticker_group.sort_values(by='date')
-    first_row = df.iloc[0]
-    start_day_volume = first_row['volume']
     last_row = df.iloc[-1]
-    yield_day_volume = last_row['volume']
     close_price = last_row[Eod.CLOSE]
-    shares_bought = amount_to_spend / close_price
+
+    volume_mean = 0
+    if df.shape[0] > 10:
+      volume_mean = df.iloc[-10,:]['volume'].mean()
 
     std = 0
     if df.shape[0] > 1:
@@ -72,12 +72,11 @@ class EquityUtilService:
     return df.shape[0] > num_days_avail \
            and close_price >= min_price \
            and std < volatility_min \
-           and shares_bought > (.0001 * yield_day_volume) \
-           and start_day_volume > (yield_day_volume / 2) \
+           and volume_mean >= min_volume
 
 
   @classmethod
-  def select_single_day_equity_data(cls, yield_date: datetime, trading_days_avail: int, min_price: float, amount_to_spend: float, volatility_min: float):
+  def select_single_day_equity_data(cls, yield_date: datetime, trading_days_avail: int, min_price: float, min_volume: int, volatility_min: float):
     yield_date_str = date_utils.get_standard_ymd_format(yield_date)
 
     earliest_date = yield_date - timedelta(days=(trading_days_avail // 253 * 365) + 500)
@@ -91,7 +90,9 @@ class EquityUtilService:
     df_date_filtered = df[(df['date'] >= earliest_date_str) & (df['date'] <= yield_date_str)]
 
     df_traded_on_date = cls.filter_by_traded_on_date(df_date_filtered, yield_date)
-    df_min_filtered = df_traded_on_date.groupby('ticker').filter(lambda x: cls.filter_equity_basic_criterium(amount_to_spend, trading_days_avail, min_price, x, volatility_min=volatility_min))
+    df_min_filtered = df_traded_on_date.groupby('ticker').filter(lambda x: cls.filter_equity_basic_criterium(
+      min_volume=min_volume, num_days_avail=trading_days_avail, min_price=min_price, ticker_group=x, volatility_min=volatility_min
+    ))
 
     return df_min_filtered
 

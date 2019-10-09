@@ -79,7 +79,9 @@ class SelectChartZipUploadService:
   def select_and_process(cls, lsm: LearningSetMetaData):
     package_path, graph_dir = cls.create_package(lsm)
 
-    df_g_filtered = StockService.get_and_prep_equity_data(lsm.amount_to_spend, lsm.trading_days_span, lsm.min_price, lsm.volatility_min, lsm.start_date, lsm.end_date)
+    df_g_filtered = StockService.get_and_prep_equity_data(min_volume=lsm.min_volume, num_days_avail=lsm.trading_days_span,
+                                                          min_price=lsm.min_price, volatility_min=lsm.volatility_min,
+                                                          start_date=lsm.start_date, end_date=lsm.end_date)
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 

@@ -77,12 +77,12 @@ class PredictHoldoutDataService():
     prediction_rosebud.sought_gain_frac = prediction_rosebud.pct_gain_sought / 100
     prediction_rosebud.max_files = 3000
     prediction_rosebud.min_price = 5.0
-    prediction_rosebud.amount_to_spend = 25000
     prediction_rosebud.chart_type = ChartType.Neopolitan
     prediction_rosebud.chart_mode = ChartMode.BackTest
     prediction_rosebud.volatility_min = 2.79
     prediction_rosebud.yield_date = yield_date
     prediction_rosebud.add_realtime_price_if_missing = add_realtime_price_if_missing
+    prediction_rosebud.min_volume = 100000
 
     std_min = 2.0
 
@@ -96,7 +96,10 @@ class PredictHoldoutDataService():
       package_dir = os.path.dirname(image_dir)
 
       auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=package_dir, score_threshold=prediction_rosebud.score_threshold)
-      auto_ml_service.predict_and_calculate(task_dir, image_dir, prediction_rosebud.sought_gain_frac, std_min=std_min, max_files=prediction_rosebud.max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
+      auto_ml_service.predict_and_calculate(task_dir=task_dir, image_dir=image_dir,
+                                            min_price=prediction_rosebud.min_price, min_volume=prediction_rosebud.min_volume,
+                                            sought_gain_frac=prediction_rosebud.sought_gain_frac, std_min=std_min,
+                                            max_files=prediction_rosebud.max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
       logger.info(f"Rendered images in {image_dir}")
     else:
       logger.info(f"Something wrong. No data returned for date {date_utils.get_standard_ymd_format(prediction_rosebud.yield_date)}.")

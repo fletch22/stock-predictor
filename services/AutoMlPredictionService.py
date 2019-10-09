@@ -8,6 +8,7 @@ from typing import List
 from google.cloud import automl_v1beta1 as automl
 
 import config
+from calculators.EodCalculator import EodCalculator
 from config import logger_factory
 from services import file_services
 from services.Eod import Eod
@@ -42,7 +43,7 @@ class AutoMlPredictionService():
   #     "score": None,
   #     "model_full_id": model_full_id
   #   }
-  def predict(self, task_dir: str, image_dir: str, std_min: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
+  def predict(self, task_dir: str, image_dir: str, min_price: float, min_volume: float, std_min: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
     file_paths = file_services.walk(image_dir)
     random.shuffle(file_paths, random.random)
 
@@ -59,17 +60,21 @@ class AutoMlPredictionService():
       category_actual, symbol, yield_date_str = EquityUtilService.get_info_from_file_path(f)
       yield_date = date_utils.parse_std_datestring(yield_date_str)
 
-      df = EquityUtilService.get_df_from_ticker_path(symbol, translate_to_hdfs_path=False)
-      df_dt_filtered = StockService.filter_dataframe_by_date(df, start_date=None, end_date=yield_date)
+      df = EquityUtilService.get_df_from_ticker_path(symbol=symbol, translate_to_hdfs_path=False)
+      df_dt_filtered = StockService.filter_dataframe_by_date(df=df, start_date=None, end_date=yield_date)
       df_curt = df_dt_filtered.iloc[-1000:, :]
       std = 0
       if df_curt.shape[0] > 1:
         std = statistics.stdev(df_curt['close'].values.tolist())
 
+      bet_day_row = df_curt.iloc[-2,:]
+      volume = bet_day_row["volume"]
+      bet_price = bet_day_row['close']
+
       if start_sample_date is None:
         start_sample_date = date_utils.parse_std_datestring('1000-01-01')
 
-      if symbol in valid_tickers and yield_date > start_sample_date and std < std_min:
+      if bet_price > min_price and volume > min_volume and symbol in valid_tickers and yield_date > start_sample_date and std < std_min:
         logger.info(f"{symbol} using yield date {yield_date_str}")
         image_info.append({"category_actual": category_actual,
                            "symbol": symbol,
@@ -81,8 +86,11 @@ class AutoMlPredictionService():
 
     return spark_predict.get_spark_results(image_info, task_dir)
 
-  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, std_min: float, max_files: int=-1, purge_cached: bool = False, start_sample_date: datetime=None):
-    results = self.predict(task_dir=task_dir, image_dir=image_dir, std_min=std_min, max_files=max_files, purge_cached=purge_cached, start_sample_date=start_sample_date)
+  def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, min_price: float, min_volume: float, std_min: float, max_files: int=-1, purge_cached: bool = False, start_sample_date: datetime=None):
+    results = self.predict(task_dir=task_dir, image_dir=image_dir,
+                          min_price=min_price, min_volume=min_volume,
+                           std_min=std_min, max_files=max_files,
+                           purge_cached=purge_cached, start_sample_date=start_sample_date)
 
     return self.calculate_mean_accuracy(results=results, sought_gain_frac=sought_gain_frac)
 
@@ -125,8 +133,16 @@ class AutoMlPredictionService():
       yield_date_str = r["date"]
       open = eod_info['open']
 
-      count_yielded, invest_amount, aggregate_gain = self.calc_frac_gain(aggregate_gain, bet_price, category_actual, category_predicted, open, high, low, close, count_yielded, invest_amount, max_drop, score,
-                                                                         sought_gain_frac, symbol, date_utils.parse_std_datestring(yield_date_str))
+      result = EodCalculator.make_nova_calculation(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
+                                                   bet_price=bet_price,
+                                                   category_actual=category_actual,
+                                                   category_predicted=category_predicted,
+                                                   open=open, high=high, low=low, close=close,
+                                                   count=count_yielded, initial_investment_amount=invest_amount,
+                                                   max_drop=max_drop, score=score,
+                                                   sought_gain_frac=sought_gain_frac,
+                                                   symbol=symbol, yield_date=date_utils.parse_std_datestring(yield_date_str))
+      count_yielded, invest_amount, aggregate_gain = result
 
     for n in aggregate_gain:
       logger.info(n)

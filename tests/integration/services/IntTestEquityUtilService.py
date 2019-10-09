@@ -65,10 +65,13 @@ class TestEquityUtilService(TestCase):
     yield_date = date_utils.parse_std_datestring('2019-08-16')
     trading_days_avail = 1000
     min_price = 5.0
-    amount_to_spend = 25000
+    min_volume = 100000
+    volatility_min = 2.8
 
     # Act
-    df = EquityUtilService.select_single_day_equity_data(yield_date, trading_days_avail=trading_days_avail, min_price=min_price, amount_to_spend=amount_to_spend)
+    df = EquityUtilService.select_single_day_equity_data(yield_date=yield_date,
+                                                         trading_days_avail=trading_days_avail,
+                                                         min_price=min_price, min_volume=min_volume, volatility_min=volatility_min)
 
     # Assert
     assert(df.shape[0] > 1000)

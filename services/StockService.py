@@ -107,14 +107,16 @@ class StockService:
 
     logger.info(f"len dt filtered by realtime price service availability: {df_sym_filtered.shape[0]}")
 
-    amount_to_spend = prediction_rosebud.amount_to_spend
     num_days_avail = prediction_rosebud.num_days_to_sample
     min_price = prediction_rosebud.min_price
     volatility_min = prediction_rosebud.volatility_min
+    min_volume = prediction_rosebud.min_volume
 
     df_grouped = df_sym_filtered.groupby('ticker')
-    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend=amount_to_spend, num_days_avail=num_days_avail,
-                                                                                                min_price=min_price, ticker_group=x,
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(min_volume=min_volume,
+                                                                                                num_days_avail=num_days_avail,
+                                                                                                min_price=min_price,
+                                                                                                ticker_group=x,
                                                                                                 volatility_min=volatility_min))
     logger.info(f"len dt filtered by basic criterium: {df_g_filtered.shape[0]}")
 
@@ -128,8 +130,12 @@ class StockService:
     return df_g_filtered
 
   @classmethod
-  def get_and_prep_equity_data(cls, amount_to_spend, num_days_avail, min_price, volatility_min, start_date: datetime=None, end_date: datetime=None):
+  def get_and_prep_equity_data(cls, min_volume:int, num_days_avail:int, min_price: float, volatility_min: float, start_date: datetime=None, end_date: datetime=None):
     df = eod_data_service.get_todays_merged_shar_data()
+
+    # NOTE: Temporary; remove.
+    # df = df[df['ticker'].isin(['MSFT', 'IBM', 'GOOG', 'CAT', 'DIS', 'BRK-B', 'SBUX', 'AMD', 'RIG', 'CZR', 'CPE'])]
+
     df = df.sort_values(["date"])
 
     df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
@@ -154,7 +160,11 @@ class StockService:
 
     df_grouped = df_in_rt.groupby('ticker')
 
-    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(amount_to_spend, num_days_avail, min_price, x, volatility_min=volatility_min))
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(min_volume=min_volume,
+                                                                                                num_days_avail=num_days_avail,
+                                                                                                min_price=min_price,
+                                                                                                ticker_group=x,
+                                                                                                volatility_min=volatility_min))
     logger.info(f"After basic crit filter: {df_g_filtered.shape[0]}")
 
     return df_g_filtered
@@ -171,12 +181,12 @@ class StockService:
   def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
     pct_gain_sought = 1.0
     min_price = 5.0
-    amount_to_spend = 25000
     volatility_min = 2.79
     num_days_avail = trading_days_span
+    min_volume = 100000
 
     os.makedirs(output_dir, exist_ok=True)
-    df_g_filtered = cls.get_and_prep_equity_data(amount_to_spend=amount_to_spend, num_days_avail=num_days_avail,
+    df_g_filtered = cls.get_and_prep_equity_data(min_volume=min_volume, num_days_avail=num_days_avail,
                                                  min_price=min_price, volatility_min=volatility_min,
                                                  start_date=start_date, end_date=end_date)
 

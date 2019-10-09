@@ -14,11 +14,11 @@ class PredictionRosebud(ClassValidator):
   yield_date: datetime = None
   num_days_to_sample = 1000
   min_price = 5.0
-  amount_to_spend = 25000
   chart_type: ChartType = None
   chart_mode: ChartMode = None
   volatility_min: float = None
   add_realtime_price_if_missing: bool = None
+  min_volume = None
 
   def is_valid(self) -> (bool, Sequence[str]):
     result = True
@@ -31,7 +31,7 @@ class PredictionRosebud(ClassValidator):
     result, msg = self.must_be_date("yield_date", result, msgs)
     result, msg = self.must_be_not_none("num_days_to_sample", result, msgs)
     result, msg = self.must_be_not_none("min_price", result, msgs)
-    result, msg = self.must_be_not_none("amount_to_spend", result, msgs)
+    result, msg = self.must_be_not_none("min_volume", result, msgs)
     result, msg = self.must_be_not_none("chart_type", result, msgs)
     result, msg = self.must_be_not_none("chart_mode", result, msgs)
     result, msg = self.must_be_not_none("volatility_min", result, msgs)

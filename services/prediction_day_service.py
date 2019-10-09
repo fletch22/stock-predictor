@@ -32,7 +32,10 @@ def predict(short_model_id: str, prediction_rosebud: PredictionRosebud, std_min:
     max_files = prediction_rosebud.max_files
 
     auto_ml_service = AutoMlPredictionService(short_model_id, package_dir=package_dir, score_threshold=prediction_rosebud.score_threshold)
-    results = auto_ml_service.predict(task_dir=package_dir, image_dir=image_dir, max_files=max_files, std_min=std_min, purge_cached=purge_cached, start_sample_date=None)
+    results = auto_ml_service.predict(task_dir=package_dir, image_dir=image_dir,
+                                      min_price=prediction_rosebud.min_price, min_volume=prediction_rosebud.min_volume,
+                                      max_files=max_files, std_min=std_min,
+                                      purge_cached=purge_cached, start_sample_date=None)
     logger.info(f"Rendered images in {image_dir}")
 
     pred_succ_list = [r for r in results if r['category_predicted'] == BinaryCategoryType.ONE]
@@ -51,23 +54,27 @@ def predict(short_model_id: str, prediction_rosebud: PredictionRosebud, std_min:
 
 
 def current_rosebud_predictor():
-  short_model_id = "ICN5283794452616644197"  # volreq_fil_09_22_v20190923042914
+  # short_model_id = "ICN5283794452616644197"  # volreq_fil_09_22_v20190923042914
+
+  # short_model_id = "ICN8748316622033513158"  # min_price fiddy with 19 vol acc:62
+    # sought_gain_frac = .01; score_threshold = .50; std_min = 5.0; min_price = 20.00; min_volume = 100000: 95/10000; roi: .234%
+  short_model_id = "ICN2140008179580940274" # 1427/10000: mp: 5.0; st: .5; std_min: 9999999; roi: .015-0.023
 
   prediction_rosebud = PredictionRosebud()
   prediction_rosebud.pct_gain_sought = 1.0
   prediction_rosebud.num_days_to_sample = 1000
   prediction_rosebud.score_threshold = .50
   prediction_rosebud.sought_gain_frac = prediction_rosebud.pct_gain_sought / 100
-  prediction_rosebud.max_files = 1000
+  prediction_rosebud.max_files = 3000
+  prediction_rosebud.min_volume = 1000
   prediction_rosebud.min_price = 5.0
-  prediction_rosebud.amount_to_spend = 25000
-  prediction_rosebud.volatility_min = 2.79
+  prediction_rosebud.volatility_min = 9999999.0
   prediction_rosebud.chart_type = ChartType.Neopolitan
   prediction_rosebud.chart_mode = ChartMode.Prediction
   prediction_rosebud.yield_date = datetime.now() # date_utils.parse_std_datestring('2019-09-27')
   prediction_rosebud.add_realtime_price_if_missing = True
 
-  std_min = 2.0
+  std_min = prediction_rosebud.volatility_min
 
   result, messages = prediction_rosebud.is_valid()
   if result is False:

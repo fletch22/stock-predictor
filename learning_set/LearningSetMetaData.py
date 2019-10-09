@@ -8,7 +8,6 @@ from utils.ClassValidator import ClassValidator
 
 class LearningSetMetaData(ClassValidator):
   min_price: float = None
-  amount_to_spend: float = None
   trading_days_span: int = None
   min_samples: int = None
   pct_gain_sought: float = None
@@ -17,13 +16,14 @@ class LearningSetMetaData(ClassValidator):
   pct_test_holdout: float = None
   chart_type: ChartType = None
   volatility_min: float = None
+  min_volume: int = None
 
   def is_valid(self) -> (bool, Sequence[str]):
     result = True
     msgs = []
 
     result, msg = self.must_be_positive_and_not_none("min_price", result, msgs)
-    result, msg = self.must_be_positive_and_not_none("amount_to_spend", result, msgs)
+    result, msg = self.must_be_positive_and_not_none("min_volume", result, msgs)
     result, msg = self.must_be_positive_nonzero_and_not_none("min_samples", result, msgs)
     result, msg = self.must_be_positive_nonzero_and_not_none("pct_test_holdout", result, msgs)
     result, msg = self.must_be_not_none("chart_type", result, msgs)

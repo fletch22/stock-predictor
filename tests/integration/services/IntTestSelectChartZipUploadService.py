@@ -22,7 +22,6 @@ class TestSelectChartZipUploadService(TestCase):
     prediction_rosebud.sought_gain_frac = prediction_rosebud.pct_gain_sought / 100
     prediction_rosebud.max_files = 1000
     prediction_rosebud.min_price = 5.0
-    prediction_rosebud.amount_to_spend = 25000
     prediction_rosebud.chart_type = ChartType.Neopolitan
     prediction_rosebud.chart_mode = ChartMode.BackTest
     prediction_rosebud.volatility_min = 2.80

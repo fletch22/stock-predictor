@@ -8,6 +8,7 @@ from datetime import datetime
 from google.cloud import automl_v1beta1 as automl
 
 import config
+from categorical.BinaryCategoryType import BinaryCategoryType
 from config import logger_factory
 from services import file_services
 from utils import date_utils
@@ -84,7 +85,7 @@ class AutoMlGeneralService():
   def prep_for_upload(cls, prediction_dir: str, num_files_needed: int):
     parent_dir = os.path.join(prediction_dir, "graphed")
 
-    categories = ["1", "0"]
+    categories = [BinaryCategoryType.ONE, BinaryCategoryType.ZERO]
     files_needed = math.ceil(num_files_needed/2)
     logger.info(f"files needed {files_needed}; parent_dir: {parent_dir}")
 
@@ -122,7 +123,7 @@ class AutoMlGeneralService():
       os.makedirs(cat_dir_train, exist_ok=True)
 
       move(test_holdout_files, cat_dir_test, False)
-      move(train_test_files, cat_dir_train, True)
+      move(train_test_files, cat_dir_train, False)
 
     return train_test_dir, test_dir
 

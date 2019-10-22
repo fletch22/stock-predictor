@@ -3,17 +3,19 @@ import random
 import statistics
 from datetime import datetime
 from statistics import mean
-from typing import List
+from typing import List, Dict
 
 from google.cloud import automl_v1beta1 as automl
 
 import config
 from calculators.EodCalculator import EodCalculator
 from config import logger_factory
-from services import file_services
+from services import file_services, SlackRealtimeMessageService
 from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.RealtimeEquityPriceService import RealtimeEquityPriceService
+from services.RedisService import RedisService
+from services.SlackService import SlackService
 from services.StockService import StockService
 from services.TickerService import TickerService
 from services.spark import spark_predict
@@ -44,7 +46,9 @@ class AutoMlPredictionService():
   #     "model_full_id": model_full_id
   #   }
   def predict(self, task_dir: str, image_dir: str, min_price: float, min_volume: float, std_min: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
-    file_paths = file_services.walk(image_dir)
+    file_infos = file_services.truncate_older(image_dir)
+    file_paths = [fi['filepath'] for fi in file_infos]
+
     random.shuffle(file_paths, random.random)
 
     if max_files > -1 and len(file_paths) > max_files:
@@ -84,7 +88,12 @@ class AutoMlPredictionService():
                            "purged_cached": purge_cached,
                            })
 
-    return spark_predict.get_spark_results(image_info, task_dir)
+    found_predictions, not_found_image_infos = self.get_in_cache(image_info)
+
+    logger.info(f"Will request AutoML predictions for {len(not_found_image_infos)} items.")
+    spark_results = spark_predict.get_spark_results(not_found_image_infos, task_dir)
+
+    return spark_results + found_predictions
 
   def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, min_price: float, min_volume: float, std_min: float, max_files: int=-1, purge_cached: bool = False, start_sample_date: datetime=None):
     results = self.predict(task_dir=task_dir, image_dir=image_dir,
@@ -92,7 +101,34 @@ class AutoMlPredictionService():
                            std_min=std_min, max_files=max_files,
                            purge_cached=purge_cached, start_sample_date=start_sample_date)
 
-    return self.calculate_mean_accuracy(results=results, sought_gain_frac=sought_gain_frac)
+    return self.calculate_mean_accuracy(results=results, sought_gain_frac=sought_gain_frac, min_price=min_price)
+
+  def get_in_cache(self, image_info: List[Dict]):
+
+    redis_service = RedisService()
+
+    found_predictions = []
+    not_found_ii = []
+    for ii in image_info:
+      image_path = ii['file_path']
+      short_model_id = ii['short_model_id']
+      key_pred = self.get_prediction_cache_key(image_path, short_model_id)
+
+      prediction = redis_service.read_as_json(key_pred)
+
+      if prediction is not None:
+        logger.info("Found prediction in Redis cache.")
+        found_predictions.append(prediction)
+      else:
+        not_found_ii.append(ii)
+
+    redis_service.close_client_connection()
+
+    return found_predictions, not_found_ii
+
+  @staticmethod
+  def get_prediction_cache_key(image_path: str, short_model_id: str):
+    return f"{short_model_id}_{image_path}"
 
   # Example results:  List of row = {
   #     "symbol": symbol,
@@ -103,7 +139,7 @@ class AutoMlPredictionService():
   #     "score": None,
   #     "model_full_id": model_full_id
   #   }
-  def calculate_mean_accuracy(self, results: List, sought_gain_frac: float):
+  def calculate_mean_accuracy(self, results: List, sought_gain_frac: float, min_price: float):
     logger.info(f"Results: {len(results)}")
 
     unique_symbols = set()
@@ -112,10 +148,10 @@ class AutoMlPredictionService():
     logger.info(f"Unique symbols: {len(unique_symbols)}")
 
     results_filtered_1 = [d for d in results if d['category_predicted'] == "1"]
-    logger.info(f"Found category_predicted = 1: {len(results_filtered_1)}.")
+    logger.debug(f"Found category_predicted = 1: {len(results_filtered_1)}.")
 
     count_yielded = 0
-    logger.info("About to get shar equity data for comparison calcs.")
+    logger.debug("About to get shar equity data for comparison calcs.")
     aggregate_gain = []
     max_drop = 1.0
     invest_amount = 10000
@@ -133,7 +169,7 @@ class AutoMlPredictionService():
       yield_date_str = r["date"]
       open = eod_info['open']
 
-      result = EodCalculator.make_nova_calculation(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
+      calc_result = EodCalculator.make_nova_calculation(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
                                                    bet_price=bet_price,
                                                    category_actual=category_actual,
                                                    category_predicted=category_predicted,
@@ -141,68 +177,39 @@ class AutoMlPredictionService():
                                                    count=count_yielded, initial_investment_amount=invest_amount,
                                                    max_drop=max_drop, score=score,
                                                    sought_gain_frac=sought_gain_frac,
-                                                   symbol=symbol, yield_date=date_utils.parse_std_datestring(yield_date_str))
-      count_yielded, invest_amount, aggregate_gain = result
+                                                   symbol=symbol, yield_date=date_utils.parse_std_datestring(yield_date_str),
+                                                   min_price=min_price)
 
-    for n in aggregate_gain:
-      logger.info(n)
+      # result = EodCalculator.make_sell_at_open_calc(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
+      #                                               bet_price=bet_price,
+      #                                               open=open, high=high, low=low, close=close,
+      #                                               count=count_yielded, initial_investment_amount=invest_amount,
+      #                                               max_drop=max_drop, score=score,
+      #                                               sought_gain_frac=sought_gain_frac,
+      #                                               symbol=symbol, yield_date=date_utils.parse_std_datestring(yield_date_str),
+      #                                               min_price=min_price)
+
+      count_yielded, invest_amount, aggregate_gain, frac_gain = calc_result
+
+      r['gain'] = frac_gain
+
+    for r in results_filtered_1:
+      if r['gain'] > 0:
+        logger.info(f"{r['symbol']}; {r['date']}; {round(r['gain'] * 100, 5)}")
 
     total_samples = len(aggregate_gain)
 
     mean_frac = 0
     if total_samples > 0:
       mean_frac = mean(aggregate_gain)
-      logger.info(f"Accuracy: {count_yielded / total_samples}; total: {total_samples}; mean M: {mean_frac}; total: {invest_amount}")
+
+      message = f"Accuracy: {count_yielded / total_samples}; score_threshold: {self.score_threshold}; total: {total_samples}; mean M: {mean_frac}; total: {invest_amount}"
+      logger.info(message)
+      slack_service = SlackService()
+      slack_service.send_direct_message_to_chris(message)
     else:
       logger.info("No samples to calculate.")
 
-    return mean_frac
-
-  def calc_frac_gain(self, aggregate_gain, bet_price, category_actual: str, category_predicted: str, open: float, high: float, low:float, close: float, count: int, initial_investment_amount: float, max_drop: float, score: float, sought_gain_frac: float, symbol: str, yield_date: datetime):
-    earned_amount = initial_investment_amount
-
-    if bet_price is None:
-      return count, earned_amount, aggregate_gain
-
-    logger.info(f"{symbol} Yield Date: {date_utils.get_standard_ymd_format(yield_date)} Score: {score}; score_threshold: {self.score_threshold}")
-    max_drop_price = bet_price - (max_drop * bet_price)
-    logger.info(f"\tbet_price: {bet_price}; open: {open}; high: {high}; low: {low}; close: {close}; max_drop_price: {max_drop_price}; ")
-    if score >= self.score_threshold:
-      if open > bet_price:
-        frac_return = ((open - bet_price) / bet_price)
-        aggregate_gain.append(frac_return)
-        count += 1
-      elif category_actual == category_predicted:
-        sought_gain_price = bet_price + (bet_price * sought_gain_frac)
-
-        # if low < max_drop_price:
-        #   frac_return = -1 * max_drop
-        #   aggregate_gain.append(frac_return)
-        # el
-        if high > sought_gain_price:
-          frac_return = sought_gain_frac
-          aggregate_gain.append(frac_return)
-        else:
-          frac_return = (close - bet_price) / bet_price
-          aggregate_gain.append(frac_return)
-
-        count += 1
-      else:
-        # if low < max_drop_price:
-        #   aggregate_gain.append(-1 * max_drop)
-        # else:
-        frac_return = (close - bet_price) / bet_price
-        aggregate_gain.append(frac_return)
-
-      returnAmount = earned_amount * frac_return
-      former_amount = earned_amount
-      earned_amount = earned_amount + (earned_amount * frac_return)
-
-      if earned_amount < 0:
-        earned_amount = 0
-
-      logger.info(f"\t{former_amount} + {returnAmount} = {earned_amount}")
-
-    return count, earned_amount, aggregate_gain
+    return mean_frac, results_filtered_1
 
 

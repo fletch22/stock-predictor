@@ -56,19 +56,20 @@ def predict(short_model_id: str, prediction_rosebud: PredictionRosebud, std_min:
 def current_rosebud_predictor():
   # short_model_id = "ICN5283794452616644197"  # volreq_fil_09_22_v20190923042914
 
-  # short_model_id = "ICN8748316622033513158"  # min_price fiddy with 19 vol acc:62
+  # short_model_id = "ICN8748316622033513158"  # fiddy; sgf = .01; st = .50; std_min = 5.0; mp = 20.00; min_volume = 100000: 278/10000; roi: .0014-.00187
     # sought_gain_frac = .01; score_threshold = .50; std_min = 5.0; min_price = 20.00; min_volume = 100000: 95/10000; roi: .234%
-  short_model_id = "ICN2140008179580940274" # 1427/10000: mp: 5.0; st: .5; std_min: 9999999; roi: .015-0.023
+  # short_model_id = "ICN2140008179580940274" # 1427/10000: mp: 5.0; st: .5; std_min: 9999999; roi: .015-0.023
+  short_model_id = "ICN1615151565178573620"  # bigname I:
 
   prediction_rosebud = PredictionRosebud()
   prediction_rosebud.pct_gain_sought = 1.0
   prediction_rosebud.num_days_to_sample = 1000
-  prediction_rosebud.score_threshold = .50
+  prediction_rosebud.score_threshold = .90
   prediction_rosebud.sought_gain_frac = prediction_rosebud.pct_gain_sought / 100
   prediction_rosebud.max_files = 3000
-  prediction_rosebud.min_volume = 1000
+  prediction_rosebud.min_volume = 0
   prediction_rosebud.min_price = 5.0
-  prediction_rosebud.volatility_min = 9999999.0
+  prediction_rosebud.volatility_min = 99999999999.0
   prediction_rosebud.chart_type = ChartType.Neopolitan
   prediction_rosebud.chart_mode = ChartMode.Prediction
   prediction_rosebud.yield_date = datetime.now() # date_utils.parse_std_datestring('2019-09-27')
@@ -86,7 +87,13 @@ def current_rosebud_predictor():
   logger.info(f"Created in {image_dir}.")
 
   slack_service = SlackService()
-  slack_service.send_direct_message_to_chris(", ".join(pred_symbols))
+
+  if len(pred_symbols) > 0:
+    message = ", ".join(pred_symbols)
+  else:
+    message = "None to recommend."
+
+  slack_service.send_direct_message_to_chris(message)
 
   return pred_symbols
 

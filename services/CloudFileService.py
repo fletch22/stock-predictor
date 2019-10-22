@@ -1,5 +1,5 @@
-import os
 import time
+from typing import Dict, List
 
 import findspark
 from google.cloud import storage
@@ -9,7 +9,6 @@ from pyspark import SparkContext, SparkFiles
 
 import config
 from config import logger_factory
-from services import file_services
 
 logger = logger_factory.create_logger(__name__)
 
@@ -45,29 +44,8 @@ class CloudFileService():
 
     return [b.name for b in blobs]
 
-  def upload_multi(self, source_dir_path: str, destination_cloud_folder_path: str, max_files: int=None):
-    file_paths = file_services.walk(source_dir_path)
-
-    logger.info(f"Will attempt to upload {len(file_paths)} files.")
-
-    upload_file_infos = []
-    for ndx, f in enumerate(file_paths):
-      category = os.path.basename(os.path.dirname(f))
-      basename = os.path.basename(f)
-      blob_name = f"{destination_cloud_folder_path}/{category}_{basename}"
-
-      logger.info(f"bname: {blob_name}")
-
-      upload_file_infos.append({
-        "source_file_path": f,
-        "destination_blob_name": blob_name
-      })
-
-      if max_files is not None and ndx >= max_files:
-        logger.info(f"Reached user set limit of {max_files} files.")
-        break
-
-    upload_needed = self.filter_out_unneeded(upload_file_infos, destination_cloud_folder_path)
+  def upload_multi(self, upload_file_infos: List[Dict], gs_package_path: str):
+    upload_needed = self.filter_out_unneeded(upload_file_infos, gs_package_path)
 
     num_already_uploaded = len(upload_file_infos) - len(upload_needed)
     if num_already_uploaded > 0:
@@ -108,11 +86,12 @@ def spark_gcs_upload(upload_file_infos):
 
 def upload_file_retry(cloud_file_services: CloudFileService, file_path, destination_blob):
   max_retries = 3
-  is_sent = True
+  is_sent = False
   count = 0
   pause_time = 1
   while is_sent is False and count < max_retries:
     try:
+      logger.info(f"Send file {destination_blob}.")
       cloud_file_services.upload_file(file_path, destination_blob)
       is_sent = True
     except:

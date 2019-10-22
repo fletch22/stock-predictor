@@ -9,8 +9,9 @@ from typing import Sequence, Tuple
 from zipfile import ZipFile
 
 import config
-from utils import date_utils
+from categorical.BinaryCategoryType import BinaryCategoryType
 
+from utils import date_utils
 
 def walk(dir):
   file_paths = []
@@ -28,6 +29,7 @@ def get_filename_info(filepath):
   datestr = components[2].split(".")[0]
 
   return {
+    "filepath": filepath,
     "category": category,
     "symbol": symbol,
     "date": date_utils.parse_std_datestring(datestr)
@@ -105,3 +107,33 @@ def get_folders_in_dir(path: str):
 def fast_copy(files_many: Sequence[Tuple[str, str]]):
   for source_path, destination_path in files_many:
     Thread(target=shutil.copy, args=[source_path, destination_path]).start()
+
+
+def truncate_older(binary_holdout_dir: str):
+  one_path = os.path.join(binary_holdout_dir, BinaryCategoryType.ONE)
+  zero_path = os.path.join(binary_holdout_dir, BinaryCategoryType.ZERO)
+
+  assert (os.path.exists(one_path))
+  assert (os.path.exists(zero_path))
+
+  one_files = walk(one_path)
+  zero_files = walk(zero_path)
+
+  one_fileinfos = [get_filename_info(filepath=fp) for fp in one_files]
+  zero_fileinfos = [get_filename_info(filepath=fp) for fp in zero_files]
+
+  one_fileinfos.sort(key=lambda f: f["date"])
+  zero_fileinfos.sort(key=lambda f: f["date"])
+
+  youngest_one = one_fileinfos[0]
+  youngest_zero = zero_fileinfos[0]
+
+  older_fileinfos, younger_fileinfos, youngest = (zero_fileinfos, one_fileinfos, youngest_one) if youngest_one['date'] > youngest_zero['date'] else (one_fileinfos, zero_fileinfos, youngest_zero)
+  # oldest = youngest_one if youngest_one['date'] > youngest_zero['date'] else youngest_zero
+  youngest_date = youngest['date']
+
+  truncated_older = [ofi for ofi in older_fileinfos if ofi['date'] >= youngest_date]
+
+  truncated_older.sort(key=lambda f: f["date"])
+
+  return truncated_older + younger_fileinfos

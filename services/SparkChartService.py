@@ -23,6 +23,7 @@ class SparkChartService():
     chart_type = stock_infos["chart_type"]
     chart_mode = stock_infos['chart_mode']
     package_path = stock_infos["package_path"]
+    add_realtime_price = stock_infos["add_realtime_price"]
 
     config.constants.IS_IN_SPARK_CONTEXT = True
     config.constants.SPARK_LOGGING_PATH = package_path
@@ -31,6 +32,9 @@ class SparkChartService():
     df = EquityUtilService.get_df_from_ticker_path(symbol, True)
     df_sorted = df.sort_values(by=['date'], inplace=False)
     df_date_filtered = StockService.filter_dataframe_by_date(df_sorted, start_date, end_date)
+
+    if add_realtime_price:
+      df_date_filtered = EquityUtilService.add_realtime_price(df)
 
     self.save_data_as_chart(symbol=symbol, save_dir=save_dir, chart_type=chart_type,
                             df=df_date_filtered, stock_infos=stock_infos, trading_days_span=trading_days_span,

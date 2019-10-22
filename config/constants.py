@@ -36,6 +36,8 @@ SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medli
 SHAR_CORE_FUNDAMENTALS = os.path.join(QUANDL_TBLS_DIR, 'shar_core_fundamentals.csv')
 SHAR_TICKERS = os.path.join(QUANDL_TBLS_DIR, "shar_tickers.csv")
 
+TEST_DATA_FILES = os.path.join(FINANCE_DATA_DIR, "test_files")
+
 WORLD_TRADING_DIR = os.path.join(FINANCE_DATA_DIR, "world_trading_data", "tables")
 WTD_STOCK_LIST_PATH = os.path.join(WORLD_TRADING_DIR, "worldtradingdata-stocklist.csv")
 
@@ -75,7 +77,7 @@ make_dir(CREDENTIALS_ROOT)
 CREDENTIALS_PATH = os.path.join(CREDENTIALS_ROOT, "fletch22-ai.json")
 
 # Google Cloud Storage
-GCS_UPLOAD_BUCKET_NAME = "api_uploads"
+GCS_UPLOAD_BUCKET_NAME = "fletch22-ai-vcm"
 
 BACKUP_ROOT_PATH = "I:/sp_backups"
 BACKUP_VOLUME_LABEL = "Flesche"
@@ -105,5 +107,7 @@ with open(slack_cred_path, "r") as f:
 BET_HISTORY_DIR = os.path.join(APP_FIN_OUTPUT_DIR, APP_NAME, "bet")
 make_dir(BET_HISTORY_DIR)
 BET_HIST_CSV_PATH = os.path.join(BET_HISTORY_DIR, "bet_history.csv")
+
+
 
 

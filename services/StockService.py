@@ -2,12 +2,14 @@ import os
 import random
 import statistics
 from datetime import datetime, timedelta
+from typing import List
 
 import pandas as pd
 from pandas import DataFrame
 
 import config
 from config import logger_factory
+from learning_set.LearningSetMetaData import LearningSetMetaData
 from prediction.PredictionRosebud import PredictionRosebud
 from services import chart_service, eod_data_service
 from services.Eod import Eod
@@ -130,15 +132,15 @@ class StockService:
     return df_g_filtered
 
   @classmethod
-  def get_and_prep_equity_data(cls, min_volume:int, num_days_avail:int, min_price: float, volatility_min: float, start_date: datetime=None, end_date: datetime=None):
+  def get_and_prep_equity_data(cls, lsm: LearningSetMetaData):
     df = eod_data_service.get_todays_merged_shar_data()
 
-    # NOTE: Temporary; remove.
-    # df = df[df['ticker'].isin(['MSFT', 'IBM', 'GOOG', 'CAT', 'DIS', 'BRK-B', 'SBUX', 'AMD', 'RIG', 'CZR', 'CPE'])]
+    if lsm.symbol_focus is not None:
+      df = df[df['ticker'].isin(lsm.symbol_focus)]
 
     df = df.sort_values(["date"])
 
-    df_date_filtered = StockService.filter_dataframe_by_date(df, start_date, end_date)
+    df_date_filtered = StockService.filter_dataframe_by_date(df, lsm.start_date, lsm.end_date)
 
     earliest_date_string = df_date_filtered["date"].to_list()[0]
     logger.info(f"Earliest date in data set: {earliest_date_string}")
@@ -160,11 +162,11 @@ class StockService:
 
     df_grouped = df_in_rt.groupby('ticker')
 
-    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(min_volume=min_volume,
-                                                                                                num_days_avail=num_days_avail,
-                                                                                                min_price=min_price,
+    df_g_filtered = df_grouped.filter(lambda x: EquityUtilService.filter_equity_basic_criterium(min_volume=lsm.min_volume,
+                                                                                                num_days_avail=lsm.trading_days_span,
+                                                                                                min_price=lsm.min_price,
                                                                                                 ticker_group=x,
-                                                                                                volatility_min=volatility_min))
+                                                                                                volatility_min=lsm.volatility_min))
     logger.info(f"After basic crit filter: {df_g_filtered.shape[0]}")
 
     return df_g_filtered
@@ -178,17 +180,20 @@ class StockService:
     return df[df['ticker'].isin(tickers)]
 
   @classmethod
-  def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, sample_file_size: SampleFileTypeSize= SampleFileTypeSize.LARGE, persist_data=False):
-    pct_gain_sought = 1.0
-    min_price = 5.0
-    volatility_min = 2.79
-    num_days_avail = trading_days_span
-    min_volume = 100000
+  def get_sample_data(cls, output_dir: str, min_samples: int, start_date: datetime, end_date: datetime, trading_days_span: int=1000, persist_data=False):
+
+    lsm = LearningSetMetaData()
+    lsm.min_volume = 100000
+    lsm.pct_gain_sought = 1.0
+    lsm.min_price = 5.0
+    lsm.volatility_min = 2.79
+    lsm.min_samples = min_samples
+    lsm.start_date = start_date
+    lsm.end_date = end_date
+    lsm.trading_days_span = trading_days_span
 
     os.makedirs(output_dir, exist_ok=True)
-    df_g_filtered = cls.get_and_prep_equity_data(min_volume=min_volume, num_days_avail=num_days_avail,
-                                                 min_price=min_price, volatility_min=volatility_min,
-                                                 start_date=start_date, end_date=end_date)
+    df_g_filtered = cls.get_and_prep_equity_data(lsm)
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 
@@ -197,7 +202,7 @@ class StockService:
     count = 0
     gain_list = []
 
-    sample_info = cls.get_sample_infos(df_g_filtered, num_days_avail, min_samples, start_date=start_date, end_date=end_date)
+    sample_info = cls.get_sample_infos(df_g_filtered, trading_days_span, min_samples, start_date=start_date, end_date=end_date)
 
     samples_remaining = min_samples
     while samples_remaining > 0:
@@ -233,7 +238,7 @@ class StockService:
 
         df_offset["assembly_index"] = count
 
-        if pct_gain > pct_gain_sought:
+        if pct_gain > lsm.pct_gain_sought:
           df_good_list.append(df_offset)
         else:
           df_bad_list.append(df_offset)
@@ -250,8 +255,8 @@ class StockService:
     df_good_short, df_bad_short = cls.even_dataframes(df_good_combined, df_bad_combined)
 
     if persist_data:
-      good_path = os.path.join(output_dir, f'up_{pct_gain_sought}_pct.csv')
-      bad_path = os.path.join(output_dir, f'not_up_{pct_gain_sought}_pct.csv')
+      good_path = os.path.join(output_dir, f'up_{lsm.pct_gain_sought}_pct.csv')
+      bad_path = os.path.join(output_dir, f'not_up_{lsm.pct_gain_sought}_pct.csv')
 
       df_good_short.to_csv(good_path, index=False)
       df_bad_short.to_csv(bad_path, index=False)
@@ -338,7 +343,8 @@ class StockService:
         logger.info(f"Reached sample saturation with symbol {symb}. No longer sampling from that symbol.")
         symbols.remove(symb)
 
-
+      if len(symbols) == 0:
+        break
 
     return assemblies
 

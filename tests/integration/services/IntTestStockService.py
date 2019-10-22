@@ -5,6 +5,7 @@ from unittest import TestCase
 
 import config
 from config import logger_factory
+from learning_set.LearningSetMetaData import LearningSetMetaData
 from prediction.PredictionRosebud import PredictionRosebud
 from services import chart_service, file_services, eod_data_service
 from services.BasicSymbolPackage import BasicSymbolPackage
@@ -66,24 +67,20 @@ class TestStockService(TestCase):
 
   def test_get_sample_infos(self):
     # Arrange
-    num_days_avail = 2
-    min_price = 5.0
-    volatility_min = 10
-    min_volume = 100000
-    start_date = None
-    end_date = None
+    lsm = LearningSetMetaData()
+    lsm.trading_days_span = 2
+    lsm.min_price = 5.0
+    lsm.volatility_min = 10
+    lsm.min_volume = 100000
+    lsm.start_date = None
+    lsm.end_date = None
 
-    df_g_filtered = StockService.get_and_prep_equity_data(min_volume=min_volume,
-                                                          num_days_avail=num_days_avail,
-                                                          min_price=min_price,
-                                                          volatility_min=volatility_min,
-                                                          start_date=start_date,
-                                                          end_date=end_date)
+    df_g_filtered = StockService.get_and_prep_equity_data(lsm=lsm)
 
     min_samples = 33
 
     # Act
-    sample_info = StockService.get_sample_infos(df_g_filtered, num_days_avail, min_samples)
+    sample_info = StockService.get_sample_infos(df_g_filtered, lsm.trading_days_span, min_samples)
 
     # Assert
     total_offsets = 0

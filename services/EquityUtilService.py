@@ -44,8 +44,9 @@ class EquityUtilService:
 
     category = BinaryCategoryType.UNKNOWN
     if chart_mode == ChartMode.BackTest:
-      bet_date_str = df.iloc[-2]['date']
-      bet_close_price = df.iloc[-2][Eod.CLOSE]
+      row_bet_day = df.iloc[-2]
+      bet_date_str = row_bet_day['date']
+      bet_close_price = row_bet_day[Eod.CLOSE]
 
       logger.info(f"{df_tailed.iloc[-2]['ticker']}; BuyPrice: {bet_close_price}; HighPrice: {yield_high_price}; bet date: {bet_date_str}; Yield date: {yield_date_str}")
       pct_gain = ((yield_high_price - bet_close_price) / bet_close_price) * 100

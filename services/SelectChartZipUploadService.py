@@ -70,18 +70,17 @@ class SelectChartZipUploadService:
         sinfo['chart_type'] = chart_type
         sinfo['package_path'] = package_path
         sinfo['chart_mode'] = chart_mode
+        sinfo['add_realtime_price'] = prediction_rosebud.add_realtime_price_if_missing
 
       spark_select_and_chart.do_spark(stock_infos=stock_infos)
 
     return df_g_filtered, package_path, graph_dir
 
   @classmethod
-  def select_and_process(cls, lsm: LearningSetMetaData):
+  def select_and_process_learning_set(cls, lsm: LearningSetMetaData):
     package_path, graph_dir = cls.create_package(lsm)
 
-    df_g_filtered = StockService.get_and_prep_equity_data(min_volume=lsm.min_volume, num_days_avail=lsm.trading_days_span,
-                                                          min_price=lsm.min_price, volatility_min=lsm.volatility_min,
-                                                          start_date=lsm.start_date, end_date=lsm.end_date)
+    df_g_filtered = StockService.get_and_prep_equity_data(lsm=lsm)
 
     logger.info(f"Num with symbols after group filtering: {df_g_filtered.shape[0]}")
 
@@ -101,10 +100,11 @@ class SelectChartZipUploadService:
       sinfo['chart_type'] = lsm.chart_type
       sinfo['package_path'] = package_path
       sinfo['chart_mode'] = ChartMode.BackTest
+      sinfo['add_realtime_price'] = False
 
     spark_select_and_chart.do_spark(stock_infos)
 
-    return package_path
+    return package_path, graph_dir
 
   @classmethod
   def create_package(cls, lsm: LearningSetMetaData):
@@ -127,14 +127,19 @@ class SelectChartZipUploadService:
 
   @classmethod
   def create_learning_set(cls, lsm: LearningSetMetaData):
-    package_path = cls.select_and_process(lsm)
+    package_path, graph_dir = cls.select_and_process_learning_set(lsm)
 
-    return SelectChartZipUploadService.split_files_and_prep(lsm.min_samples, package_path, lsm.pct_test_holdout)
+    train_test_dir, holdout_dir = SelectChartZipUploadService.split_files_and_prep(package_path, image_dir=graph_dir, pct_test_holdout=lsm.pct_test_holdout)
+
+    return package_path, train_test_dir, holdout_dir
 
   @classmethod
-  def split_files_and_prep(cls, sample_size: int, package_path: str, pct_test_holdout: float = 20):
-    num_files_needed: int = int(sample_size * (pct_test_holdout / 100))
-    logger.info(f"Setting aside {num_files_needed} for holdout.")
-    train_test_dir, _ = AutoMlGeneralService.prep_for_upload(package_path, num_files_needed)
+  def split_files_and_prep(cls, package_path: str, image_dir: str, pct_test_holdout: float = 20):
 
-    return train_test_dir
+    total_files = len(file_services.walk(image_dir))
+
+    num_files_needed: int = int(total_files * (pct_test_holdout / 100))
+    logger.info(f"Setting aside {num_files_needed} for holdout.")
+    train_test_dir, holdout_dir = AutoMlGeneralService.prep_for_upload(package_path, num_files_needed)
+
+    return train_test_dir, holdout_dir

@@ -17,6 +17,7 @@ class LearningSetMetaData(ClassValidator):
   chart_type: ChartType = None
   volatility_min: float = None
   min_volume: int = None
+  symbol_focus = []
 
   def is_valid(self) -> (bool, Sequence[str]):
     result = True

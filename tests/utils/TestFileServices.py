@@ -2,8 +2,10 @@ import os
 import random
 import shutil
 from unittest import TestCase
+from utils import date_utils
 
 import config
+from categorical.BinaryCategoryType import BinaryCategoryType
 from config import logger_factory
 from services import file_services
 
@@ -60,5 +62,19 @@ class TestFileServices(TestCase):
 
     # Assert
     assert(os.path.exists(output_path))
+
+  def test_thing(self):
+    # Arrange
+    package_folder = "process_2019-08-07_08-27-02-182.53"
+    holdout_dir = os.path.join(config.constants.TEST_DATA_FILES, package_folder, "test_holdout")
+
+    # Act
+    files = file_services.truncate_older(holdout_dir)
+
+    # Assert
+    files.sort(key=lambda f: f["date"])
+    youngest_file_date = files[0]['date']
+
+    assert(date_utils.get_standard_ymd_format(youngest_file_date) == '2019-07-12')
 
 

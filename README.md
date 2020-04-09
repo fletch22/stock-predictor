@@ -1,5 +1,5 @@
 
-Stock Predictor
+# Google AutoML Stock Predictor
 
 This codebase originally included code from huseinzol05's project 'Stock-Prediction-Models'. 
 

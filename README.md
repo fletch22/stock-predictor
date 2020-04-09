@@ -3,7 +3,7 @@ Stock Predictor
 
 This codebase originally included code from huseinzol05's project 'Stock-Prediction-Models'. 
 
-Although that project had many useful examples, I decided to try something different - CNN based model prediction.
+Although that project had many useful examples, I decided to try something different - AutoML's CNN based model prediction.
 
 This required building huge pipelines of data processing and image manipulation. The result you can see here.
 

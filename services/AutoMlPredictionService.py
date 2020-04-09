@@ -46,8 +46,7 @@ class AutoMlPredictionService():
   #     "model_full_id": model_full_id
   #   }
   def predict(self, task_dir: str, image_dir: str, min_price: float, min_volume: float, std_min: float, max_files=-1, purge_cached: bool = False, start_sample_date: datetime=None):
-    file_infos = file_services.truncate_older(image_dir)
-    file_paths = [fi['filepath'] for fi in file_infos]
+    file_paths = file_services.walk(image_dir)
 
     random.shuffle(file_paths, random.random)
 
@@ -69,11 +68,11 @@ class AutoMlPredictionService():
       df_curt = df_dt_filtered.iloc[-1000:, :]
       std = 0
       if df_curt.shape[0] > 1:
-        std = statistics.stdev(df_curt['close'].values.tolist())
+        std = statistics.stdev(df_curt[Eod.CLOSE].values.tolist())
 
       bet_day_row = df_curt.iloc[-2,:]
       volume = bet_day_row["volume"]
-      bet_price = bet_day_row['close']
+      bet_price = bet_day_row[Eod.CLOSE]
 
       if start_sample_date is None:
         start_sample_date = date_utils.parse_std_datestring('1000-01-01')
@@ -97,7 +96,7 @@ class AutoMlPredictionService():
 
   def predict_and_calculate(self, task_dir: str, image_dir: str, sought_gain_frac: float, min_price: float, min_volume: float, std_min: float, max_files: int=-1, purge_cached: bool = False, start_sample_date: datetime=None):
     results = self.predict(task_dir=task_dir, image_dir=image_dir,
-                          min_price=min_price, min_volume=min_volume,
+                           min_price=min_price, min_volume=min_volume,
                            std_min=std_min, max_files=max_files,
                            purge_cached=purge_cached, start_sample_date=start_sample_date)
 
@@ -169,7 +168,7 @@ class AutoMlPredictionService():
       yield_date_str = r["date"]
       open = eod_info['open']
 
-      calc_result = EodCalculator.make_nova_calculation(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
+      calc_result = EodCalculator.make_bail_gap_low_calculation(aggregate_gain=aggregate_gain, score_threshold=self.score_threshold,
                                                    bet_price=bet_price,
                                                    category_actual=category_actual,
                                                    category_predicted=category_predicted,
@@ -194,7 +193,7 @@ class AutoMlPredictionService():
       r['gain'] = frac_gain
 
     for r in results_filtered_1:
-      if r['gain'] > 0:
+      if r['gain'] != 0:
         logger.info(f"{r['symbol']}; {r['date']}; {round(r['gain'] * 100, 5)}")
 
     total_samples = len(aggregate_gain)

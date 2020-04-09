@@ -1,0 +1,1 @@
+python -m seq2seq.main --config=stock_symbol_bahdanau.json

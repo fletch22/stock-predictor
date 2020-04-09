@@ -8,6 +8,7 @@ import config
 from categorical.BinaryCategoryType import BinaryCategoryType
 from config.logger_factory import logger_factory
 from services import eod_data_service, split_eod_data_to_files_service, file_services, project_upload_service
+from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.RealtimeEquityPriceService import RealtimeEquityPriceService
 from services.SampleFileTypeSize import SampleFileTypeSize
@@ -122,14 +123,14 @@ class TestEquityUtilService(TestCase):
     assert(num_today_rows == len(symbols))
 
     ibm_row = df_added[(df_added['date'] == today_str) & (df_added['ticker'] == 'IBM')]
-    ibm_close_actual = ibm_row.iloc[0]['close']
+    ibm_close_actual = ibm_row.iloc[0][Eod.CLOSE]
 
     assert(ibm_price_expected == ibm_close_actual)
 
   def test_get_highest_volumes(self):
     # Arrange
     df_merged = eod_data_service.get_todays_merged_shar_data()
-    df_date = df_merged[df_merged['date'] == '2018-11-15']
+    df_date = df_merged[df_merged['date'] == '2019-07-16']
 
     number_symbols = 100
     df_largest = df_date.nlargest(number_symbols, 'volume')
@@ -158,7 +159,7 @@ class TestEquityUtilService(TestCase):
 
       sample = df_ticker.iloc[-1]
       symbol = sample['ticker']
-      last = sample['close']
+      last = sample[Eod.CLOSE]
 
       open_closes.append({'symbol': symbol, 'diff': last-first})
       return df_ticker

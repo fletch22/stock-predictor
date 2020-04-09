@@ -79,10 +79,11 @@ class PredictHoldoutDataService():
     prediction_rosebud.min_price = 5.0
     prediction_rosebud.chart_type = ChartType.Neopolitan
     prediction_rosebud.chart_mode = ChartMode.BackTest
-    prediction_rosebud.volatility_min = 2.79
+    prediction_rosebud.volatility_min = 9999999999999
     prediction_rosebud.yield_date = yield_date
     prediction_rosebud.add_realtime_price_if_missing = add_realtime_price_if_missing
     prediction_rosebud.min_volume = 100000
+    prediction_rosebud.symbol_focus = ['AAPL', 'ABBV', 'ABEV', 'ACB', 'AKS', 'AMD', 'APHA', 'APRN', 'AR', 'AUY', 'AVP', 'BABA', 'BAC', 'BMY', 'C', 'CGIX', 'CHK', 'CLDR', 'CLF', 'CMCSA', 'CPE', 'CRZO', 'CSCO', 'CTL', 'CY', 'CZR', 'DAL', 'DB', 'DNR', 'ECA', 'ET', 'F', 'FB', 'FCEL', 'FCX', 'FHN', 'GBTC', 'GE', 'GGB', 'GM', 'GNMX', 'GOLD', 'HAL', 'HL', 'HSGX', 'IMRN', 'INFY', 'INTC', 'ITUB', 'JD', 'JNJ', 'JPM', 'KEY', 'KMI', 'MGTI', 'MPW', 'MRO', 'MS', 'MSFT', 'MSRT', 'MU', 'NBR', 'NIO', 'NLY', 'NOK', 'ORCL', 'OXY', 'PBCT', 'PBR', 'PDD', 'PFE', 'QCOM', 'RF', 'RIG', 'ROKU', 'RRC', 'S', 'SAN', 'SCHW', 'SIRI', 'SLB', 'SLS', 'SNAP', 'SWN', 'SYMC', 'T', 'TEVA', 'TRNX', 'TRQ', 'TWTR', 'UBNK', 'VALE', 'VZ', 'WDC', 'WFC', 'WMB', 'WPX', 'X', 'XOM', 'ZNGA']
 
     std_min = 2.0
 

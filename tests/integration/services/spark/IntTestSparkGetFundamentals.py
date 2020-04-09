@@ -1,6 +1,9 @@
 import os
 from unittest import TestCase
 
+import findspark
+from pyspark import SparkContext
+
 from config import logger_factory
 from services.spark import spark_get_fundamentals
 from utils import date_utils
@@ -65,3 +68,14 @@ class TestSparkGetFundamentals(TestCase):
     logger.info(f"s: {results}")
 
     assert(results['offset_info'][100]['pe'] == 20.958)
+
+  def test_spark_with_more_memory(self):
+    findspark.init()
+    sc = SparkContext.getOrCreate()
+    conf = sc._conf.setAll([('spark.app.name', 'FLetch22 Spark Updated Conf'), ('spark.driver.memory', '4g')])
+    sc.stop()
+    sc = SparkContext.getOrCreate(conf)
+    sc.setLogLevel("INFO")
+    print(sc._jsc.sc().uiWebUrl().get())
+
+    print(sc.getConf().getAll())

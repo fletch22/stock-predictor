@@ -81,8 +81,8 @@ class TestCloudFileService(TestCase):
     test_frac = .1
     validation_frac = .1
 
-    # package_folder = "C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\process_2019-10-13_21-50-03-530.41"
-    package_folder = "C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\process_2019-10-13_12-37-13-166.13"
+    # package_folder = "C:\\\\Users\\\\Chris\\\\workspaces\\\\data\\\\financial\\\\output\\\\stock_predictor\\\\selection_packages\\\\SelectChartZipUploadService\\\\process_2019-10-13_21-50-03-530.41"
+    package_folder = "C:\\\\Users\\\\Chris\\\\workspaces\\\\data\\\\financial\\\\output\\\\stock_predictor\\\\selection_packages\\\\SelectChartZipUploadService\\\\process_2019-10-13_12-37-13-166.13"
 
     # Act
     files_to_delete, csv_path, gcs_package_path, gcs_meta_csv = project_upload_service.upload_images_and_meta_csv(package_folder=package_folder,
@@ -104,7 +104,6 @@ class TestCloudFileService(TestCase):
 
     # Assert
     assert (len(files) > 0)
-
 
 
 

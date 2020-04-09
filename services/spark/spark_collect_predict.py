@@ -8,6 +8,7 @@ from pyspark import SparkContext, SparkFiles
 import config
 from config import logger_factory
 from services import file_services
+from services.Eod import Eod
 from services.EquityUtilService import EquityUtilService
 from services.RedisService import RedisService
 from services.quality_verifiers.verify_folder_image_quality import get_info_from_file_path
@@ -199,11 +200,11 @@ def spark_process(thing_dict):
 
       prediction["high"] = df_yield_date['high'].values[0]
       prediction["low"] = df_yield_date['low'].values[0]
-      prediction["close"] = df_yield_date['close'].values[0]
+      prediction["close"] = df_yield_date[Eod.CLOSE].values[0]
 
       df_bet_date = df[df['date'] == date_utils.get_standard_ymd_format(bet_date)]
       if df_bet_date.shape[0] > 0:
-        prediction['bet_price'] = df_bet_date['close'].values[0]
+        prediction['bet_price'] = df_bet_date[Eod.CLOSE].values[0]
       else:
         prediction['bet_price'] = None
 

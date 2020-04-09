@@ -52,8 +52,6 @@ class SelectChartZipUploadService:
 
       sample_infos = StockService.get_sample_infos_one_day(df_g_filtered=df_g_filtered, num_days_avail=trading_days_span, min_samples=min_samples, start_date=start_date, yield_date=yield_date, translate_file_path_to_hdfs=False)
 
-      logger.info(f"si: {type(sample_infos)}")
-
       if chart_type == ChartType.Neopolitan:
         stock_infos = equity_fundamentals_service.get_scaled_sample_infos(sample_infos=sample_infos, package_path=package_path, trading_days_span=trading_days_span, start_date=start_date, end_date=end_date, desired_fundamentals=['pe', 'ev', 'eps'])
       elif chart_type == ChartType.Vanilla:
@@ -90,6 +88,14 @@ class SelectChartZipUploadService:
     stock_infos = StockService.get_sample_infos(df_g_filtered, lsm.trading_days_span, lsm.min_samples, False, lsm.start_date, lsm.end_date)
     if ChartType.Neopolitan == lsm.chart_type:
       stock_infos = equity_fundamentals_service.get_scaled_sample_infos(stock_infos, package_path, lsm.trading_days_span, lsm.start_date, lsm.end_date, desired_fundamentals=['pe', 'ev', 'eps'])
+    else:
+      van_infos = []
+      for k in stock_infos.keys():
+        dict_a = stock_infos[k]
+        dict_a['symbol'] = k
+        van_infos.append(dict_a)
+      stock_infos = van_infos
+
 
     for sinfo in stock_infos:
       sinfo['trading_days_span'] = lsm.trading_days_span

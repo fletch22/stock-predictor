@@ -7,11 +7,12 @@ import os
 from threading import Thread
 from typing import Sequence, Tuple
 from zipfile import ZipFile
-
+import urllib.request
 import config
 from categorical.BinaryCategoryType import BinaryCategoryType
+from config.logger_factory import create_logger
 
-from utils import date_utils
+logger = create_logger(__name__)
 
 def walk(dir):
   file_paths = []
@@ -22,6 +23,8 @@ def walk(dir):
   return file_paths
 
 def get_filename_info(filepath):
+  from utils import date_utils
+
   components = os.path.basename(filepath).split("_")
 
   category = components[0]
@@ -36,6 +39,8 @@ def get_filename_info(filepath):
   }
 
 def create_unique_file_system_name(parent_dir: str, prefix: str, extension: str=None):
+  from utils import date_utils
+
   date_str = date_utils.format_file_system_friendly_date(datetime.now())
   proposed_core_item_name = f"{prefix}_{date_str}"
 
@@ -137,3 +142,30 @@ def truncate_older(binary_holdout_dir: str):
   truncated_older.sort(key=lambda f: f["date"])
 
   return truncated_older + younger_fileinfos
+
+def download_file(url: str, local_dest_path: str, overwrite_existing: bool=True):
+
+  url_request = urllib.request.Request(url, headers={})
+  url_connect = urllib.request.urlopen(url_request)
+
+  if os.path.exists(local_dest_path) and not overwrite_existing:
+    basename = os.path.basename(local_dest_path)
+    logger.info(f"Download aborted! File '{basename}' already exists.")
+    return
+
+  buffer_size = 256
+
+  try:
+    # remember to open file in bytes mode
+    with open(local_dest_path, 'wb') as f:
+      while True:
+        buffer = url_connect.read(buffer_size)
+        if not buffer: break
+
+        # an integer value of size of written data
+        data_wrote = f.write(buffer)
+  except:
+    raise Exception("Encountered a problem attempting to download file.")
+  finally:
+    # you could probably use with-open-as manner
+    url_connect.close()

@@ -11,15 +11,11 @@ import statistics
 logger = logger_factory.create_logger(__name__)
 
 def test_fast_calc(self):
-  # scores_ICN2174544806954869914_2019-07-17_2019-08-15.csv
-  # short_model_id = "ICN7780367212284440071"
-  # short_model_id = "ICN2174544806954869914"
   short_model_id = "ICN2383257928398147071"  # vol_eq_09_14_11_47_31_845_11 65%
   start_date_str = "2019-07-17"
   end_date_str = "2019-09-06"
   end_snip_str = "2019-09-06"
   score_threshold_low = .56
-  # score_threshold_high = .62
   initial_investment_amount = 10000
   sought_gain_frac = .01
   max_price_drop_frac = None

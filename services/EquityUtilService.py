@@ -66,7 +66,7 @@ class EquityUtilService:
 
     std = 0
     if df.shape[0] > 1:
-      std = statistics.stdev(df['close'].values.tolist())
+      std = statistics.stdev(df[Eod.CLOSE].values.tolist())
 
     # Shares bought should be greater than .01% of the yield day's volume.
     # Shares bought should be greater than .005% of the start span day's volume. So
@@ -115,7 +115,7 @@ class EquityUtilService:
       category_actual, symbol, date_str = cls.get_info_from_file_path(fp)
       df = EquityUtilService.get_df_from_ticker_path(symbol, translate_paths_for_hdfs)
       df = df[df['date'] < '2018-12-31']
-      std = statistics.stdev(df['close'].values.tolist())
+      std = statistics.stdev(df[Eod.CLOSE].values.tolist())
       return std < 24.0
 
     return list(filter(get_low_variability, file_paths))
@@ -142,10 +142,10 @@ class EquityUtilService:
     def get_std(df, agg_std):
       if df.shape[0] > 1:
         df = df.iloc[-trading_days_span:, :]
-        close_price = df.iloc[-1,:]['close']
+        close_price = df.iloc[-1,:][Eod.CLOSE]
         if close_price > price_min:
           symbol = df.iloc[0]['ticker']
-          std = statistics.stdev(df['close'].values.tolist())
+          std = statistics.stdev(df[Eod.CLOSE].values.tolist())
           agg_std.append([symbol, std])
           logger.info(f"Calc stdev for symbol {symbol}: {std}; price: {close_price}")
 

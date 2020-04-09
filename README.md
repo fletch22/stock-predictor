@@ -29,7 +29,7 @@
   1. Deep Feed-forward Auto-Encoder Neural Network to reduce dimension + Deep Recurrent Neural Network + ARIMA + Extreme Boosting Gradient Regressor
   2. Adaboost + Bagging + Extra Trees + Gradient Boosting + Random Forest + XGB
 
-#### [Deep-learning models](deep-learning)
+#### [Deep-learning models](deep_learning)
  1. LSTM Recurrent Neural Network
  2. Encoder-Decoder Feed-forward + LSTM Recurrent Neural Network
  3. LSTM Bidirectional Neural Network
@@ -102,7 +102,7 @@
 
 ### [Tensorflow-js](stock-forecasting-js)
 
-I code [LSTM Recurrent Neural Network](deep-learning/1.lstm.ipynb) and [Simple signal rolling agent](agent/simple-agent.ipynb) inside Tensorflow JS, you can try it here, [huseinhouse.com/stock-forecasting-js](https://huseinhouse.com/stock-forecasting-js/)
+I code [LSTM Recurrent Neural Network](deep_learning/1.lstm.ipynb) and [Simple signal rolling agent](agent/simple-agent.ipynb) inside Tensorflow JS, you can try it here, [huseinhouse.com/stock-forecasting-js](https://huseinhouse.com/stock-forecasting-js/)
 
 ## Results
 
@@ -320,6 +320,11 @@ pac.cmd - Predict and Calculate using a folder of images and model ID.
     Then collect folders and run scp.
     
     Then run 'test_fast_calc' using score csv
+    
+    
+# Install Dependencies
+
+    At the command line execute: id.cmd
             
 ## TODO:
 

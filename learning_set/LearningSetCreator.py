@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from stopwatch import Stopwatch
 
 from charts.ChartType import ChartType
@@ -7,8 +5,6 @@ from config.logger_factory import logger_factory
 from services import project_upload_service
 from services.SelectChartZipUploadService import SelectChartZipUploadService
 from learning_set.LearningSetMetaData import LearningSetMetaData
-from utils import date_utils
-
 logger = logger_factory.create_logger(__name__)
 
 class LearningSetCreator():
@@ -21,21 +17,23 @@ class LearningSetCreator():
 
     lsm = LearningSetMetaData()
     lsm.min_price = 5.0
-    lsm.trading_days_span = 1000
-    lsm.min_samples = 500000
+    lsm.trading_days_span = 200
+    lsm.min_samples = 1200000
     lsm.pct_gain_sought = 1.0
-    lsm.start_date = None  # date_utils.parse_datestring("2015-07-23")
-    lsm.end_date = date_utils.parse_std_datestring("2018-11-15")
-    lsm.pct_test_holdout = 10
-    lsm.chart_type = ChartType.Neopolitan
+    lsm.start_date = None # date_utils.parse_std_datestring("2015-06-17")
+    lsm.end_date = None # date_utils.parse_std_datestring("2019-08-16")
+    lsm.pct_test_holdout = 5
+    lsm.chart_type = ChartType.Vanilla
     # 19.6511 is mean volatility for last 1000 trading days for < close price 50.00
     lsm.volatility_min = 99999999999
     lsm.min_volume = 0
-    lsm.symbol_focus = ['AAPL', 'ABEV', 'ACB', 'AGNC', 'AMAT', 'AMD', 'AMRH', 'AMRN', 'ATVI', 'AUY', 'BABA', 'BAC', 'BANT', 'BBD', 'BHGE', 'C', 'CELG', 'CHK', 'CMCSA', 'COTY', 'CSCO', 'CZR', 'DELL', 'DNR', 'EBAY', 'ECA', 'EQT', 'F', 'FB', 'FCX', 'FDC', 'FMCC', 'FNMA', 'GE', 'GGB', 'GM', 'GOLD', 'HAL', 'HBAN', 'HMNY', 'HPE', 'INTC', 'ITUB', 'JCP', 'JD', 'JPM', 'KBH', 'KEY', 'KGC', 'KMI', 'KO', 'LYG', 'M', 'MO', 'MRK', 'MRO', 'MRVL', 'MS', 'MSFT', 'MU', 'NBEV', 'NBR', 'NIO', 'NLY', 'NOK', 'NTAP', 'NVDA', 'NWL', 'ORCL', 'PBR', 'PCG', 'PFE', 'PG', 'PPL', 'QCOM', 'RF', 'RIG', 'S', 'SBUX', 'SIRI', 'SLB', 'SNAP', 'SQ', 'SWN', 'SYMC', 'T', 'TAHO', 'TEVA', 'TSM', 'TWTR', 'VALE', 'VER', 'VICI', 'VIPS', 'VZ', 'WFC', 'WFTIQ', 'WMT', 'XOM', 'ZNGA']
+    lsm.symbol_focus = None # ['AAPL', 'ABBV', 'ABEV', 'ACB', 'AKS', 'AMD', 'APHA', 'APRN', 'AR', 'AUY', 'AVP', 'BABA', 'BAC', 'BMY', 'C', 'CGIX', 'CHK', 'CLDR', 'CLF', 'CMCSA', 'CPE', 'CRZO', 'CSCO', 'CTL', 'CY', 'CZR', 'DAL', 'DB', 'DNR', 'ECA', 'ET', 'F', 'FB', 'FCEL', 'FCX', 'FHN', 'GBTC', 'GE', 'GGB', 'GM', 'GNMX', 'GOLD', 'HAL', 'HL', 'HSGX', 'IMRN', 'INFY', 'INTC', 'ITUB', 'JD', 'JNJ', 'JPM', 'KEY', 'KMI', 'MGTI', 'MPW', 'MRO', 'MS', 'MSFT', 'MSRT', 'MU', 'NBR', 'NIO', 'NLY', 'NOK', 'ORCL', 'OXY', 'PBCT', 'PBR', 'PDD', 'PFE', 'QCOM', 'RF', 'RIG', 'ROKU', 'RRC', 'S', 'SAN', 'SCHW', 'SIRI', 'SLB', 'SLS', 'SNAP', 'SWN', 'SYMC', 'T', 'TEVA', 'TRNX', 'TRQ', 'TWTR', 'UBNK', 'VALE', 'VZ', 'WDC', 'WFC', 'WMB', 'WPX', 'X', 'XOM', 'ZNGA']
 
     package_path, test_train_dir, holdout_dir = SelectChartZipUploadService.create_learning_set(lsm)
-    test_frac = .1
-    validation_frac = .1
+    test_frac = .2
+    validation_frac = .2
+
+    # package_path = "C:\\Users\\Chris\\workspaces\\data\\financial\\output\\stock_predictor\\selection_packages\\SelectChartZipUploadService\\process_2019-11-14_08-41-16-223.75"
 
     created_files, csv_path, gcs_package_path, gcs_meta_csv = project_upload_service.upload_images_and_meta_csv(package_folder=package_path,
                                                                                                                 test_frac=test_frac,

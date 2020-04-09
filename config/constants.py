@@ -5,7 +5,7 @@ import string
 from pathlib import Path
 from datetime import datetime
 
-from utils import date_utils
+# from utils import date_utils
 
 APP_NAME = "stock_predictor"
 
@@ -23,6 +23,9 @@ DATA_DIR = os.path.join(WORKSPACE_DIR, "data")
 FINANCE_DATA_DIR = os.path.join(DATA_DIR, "financial")
 APP_FIN_OUTPUT_DIR = os.path.join(FINANCE_DATA_DIR, "output", APP_NAME)
 make_dir(APP_FIN_OUTPUT_DIR)
+
+ALT_MODEL_OUTPUT_DIR = os.path.join(APP_FIN_OUTPUT_DIR, "alt_models")
+make_dir(ALT_MODEL_OUTPUT_DIR)
 
 QUANDL_DIR = os.path.join(FINANCE_DATA_DIR, "quandl")
 QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
@@ -59,10 +62,10 @@ make_dir(LOG_PARENT_DIR)
 env_unique_log_path = "UNIQIFY_LOG_PATH"
 if env_unique_log_path in os.environ:
   print("Make unique: " + os.environ[env_unique_log_path])
-if env_unique_log_path in os.environ and os.environ["UNIQIFY_LOG_PATH"] == "true":
-  LOGGING_DIR = os.path.join(LOG_PARENT_DIR, date_utils.format_file_system_friendly_date(datetime.now()))
-else:
-  LOGGING_DIR = os.path.join(LOG_PARENT_DIR)
+# if env_unique_log_path in os.environ and os.environ["UNIQIFY_LOG_PATH"] == "true":
+#   LOGGING_DIR = os.path.join(LOG_PARENT_DIR, date_utils.format_file_system_friendly_date(datetime.now()))
+# else:
+LOGGING_DIR = os.path.join(LOG_PARENT_DIR)
 
 print(f"About to make logging dir (if nec): {LOGGING_DIR}")
 make_dir(LOGGING_DIR)

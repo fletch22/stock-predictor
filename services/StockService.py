@@ -88,6 +88,9 @@ class StockService:
     df = eod_data_service.get_todays_merged_shar_data()
     df = df.sort_values(["date"])
 
+    if len(prediction_rosebud.symbol_focus) > 0:
+      df = df[df['ticker'].isin(prediction_rosebud.symbol_focus)]
+
     yield_date_str = date_utils.get_standard_ymd_format(prediction_rosebud.yield_date)
 
     df_symbol_on_date, _ = cls.filter_by_recent_symbols(df, prediction_rosebud.yield_date, prediction_rosebud.add_realtime_price_if_missing)

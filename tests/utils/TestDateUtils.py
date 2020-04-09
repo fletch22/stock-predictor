@@ -1,12 +1,9 @@
-import os
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 
-import config
 from config import logger_factory
-from services import chart_service
 from utils import date_utils
 
 logger = logger_factory.create_logger(__name__)

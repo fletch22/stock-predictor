@@ -32,6 +32,8 @@ def get_date(file_path):
   file_info = file_services.get_filename_info(file_path)
   return date_utils.get_standard_ymd_format(file_info['date'])
 
+
+
 def upload_project(project_path:str, test_frac:float, validation_frac:float):
 
   test_train_path = os.path.join(project_path, "train_test")
@@ -42,7 +44,7 @@ def upload_project(project_path:str, test_frac:float, validation_frac:float):
   files_zero = file_services.walk(path_zero)
   files_one = file_services.walk(path_one)
 
-  train_frac = 1 - (test_frac + validation_frac)
+  train_frac = float(1 - (test_frac + validation_frac))
 
   combined = files_zero + files_one
 
@@ -55,6 +57,8 @@ def upload_project(project_path:str, test_frac:float, validation_frac:float):
   num_test_valid = math.ceil(total_sorted * (test_frac + validation_frac))
   train_files = comb_sorted[:num_train]
   test_validation_files = comb_sorted[-num_test_valid:]
+
+  logger.info(f"Num test validation files: {test_validation_files}")
 
   shuffle(test_validation_files)
 

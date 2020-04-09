@@ -229,6 +229,30 @@ def predict_and_calculate():
   #       2858/8800: sgf: .01; st: .6; sm: 99999999; roi: .000955
   #       556/3000: .01; st: .7; sm: 99999999; roi: 0.0018
   #       87/3000: .01; st: .8; sm: 99999999; roi: .00522
+  #   process_2019-10-21_17-17-27-762.6
+  #     top_hun_obs: ICN4694314409690291895
+  #       1572/3000: sgf: .01; st: .5; sm: 99999999; roi: .0015
+  #   process_2019-10-22_18-36-54-425.06
+  #     tophun_early: ICN3109995942327562441
+  #       1390/3000: sgf: .01; st: .5; sm: 99999999; roi: .00051
+  #       933/3000: sgf: .01; st: .6; sm: 99999999; roi: .00061
+  #       563/3000: sgf: .01; st: .7; sm: 99999999; roi: .0001089
+  #       169/3000: sgf: .01; st: .8; sm: 99999999; roi: -0.00179
+  #       38/3000: sgf: .01; st: .85; sm: 99999999; roi: -0.000072%
+  #       405/10K: sgf: .01; st: .7; sm: 5; roi: 0.001529
+  #   process_2019-10-23_19-08-00-112.25
+  #     jul_test: ICN4285593484437077898
+  #       1169/5200: sgf: .01; st: .5; sm: 5; roi: 0.00088
+  #       /5200: sgf: .01; st: .5; sm: 9999999; roi: 0.00088
+  #       /5200: sgf: .01; st: .6; sm: 5; roi: 0.000
+  #       /5200: sgf: .01; st: .7; sm: 5; roi: 0.000
+  #   process_2019-10-23_19-08-00-112.25
+  #     jul_test: ICN4285593484437077898 after Jul 17 only
+  #       556/5170: sgf: .01; st: .5; sm: 5; roi: -0.00277
+  #       975/5170: sgf: .01; st: .5; sm: 9999999; roi: -0.0040
+  #       430/5170: sgf: .01; st: .6; sm: 9999999; roi: -0.0046
+  #       78/5170: sgf: .01; st: .7; sm: 5; roi: -0.0088
+  #       /5170: sgf: .01; st: .5; sm: 2; roi: 0.00
 
 
   tuples = [
@@ -257,7 +281,11 @@ def predict_and_calculate():
     # ("ICN4535143846407309133", "process_2019-10-19_09-17-10-340.29") # SevBig
     # ("ICN7054239439526564691", "process_2019-10-19_09-17-10-340.29") # SevBig II
     # ("ICN208523049317614530", "process_2019-10-19_22-34-43-919.88") # SevBig 2019-01-15
-    ("ICN6800560436346434938", "process_2019-10-20_19-42-48-304.63") # top_hun
+    # ("ICN6800560436346434938", "process_2019-10-20_19-42-48-304.63") # top_hun
+    # ("ICN4694314409690291895", "process_2019-10-21_17-17-27-762.6")  # top_hun_obs
+    # ("ICN3109995942327562441", "process_2019-10-22_18-36-54-425.06") # tophu_ear
+    # ("ICN4285593484437077898", "process_2019-10-22_21-42-26-309.53")  # jul_test
+    ("ICN4285593484437077898", "process_2019-10-23_19-08-00-112.25")  # jul_test after jul17
   ]
 
   results = []
@@ -281,11 +309,11 @@ def pred_images_from_folder(short_model_id, package_folder):
 
   sought_gain_frac = .01
   min_price = 5.00
-  score_threshold = .80
-  std_min = 9999999999999999.0
+  score_threshold = .5
+  std_min = 999999999
   min_volume = 1000
-  max_files = 3000
-  start_sample_date = None # date_utils.parse_std_datestring("2019-03-05")
+  max_files = 5200
+  start_sample_date = date_utils.parse_std_datestring("2019-07-17")
 
   purge_cached = False
 

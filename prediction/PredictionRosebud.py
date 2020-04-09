@@ -19,6 +19,7 @@ class PredictionRosebud(ClassValidator):
   volatility_min: float = None
   add_realtime_price_if_missing: bool = None
   min_volume = None
+  symbol_focus = []
 
   def is_valid(self) -> (bool, Sequence[str]):
     result = True
@@ -38,6 +39,5 @@ class PredictionRosebud(ClassValidator):
     result, msg = self.must_be_not_none("chart_type", result, msgs)
     result, msg = self.must_be_not_none("volatility_min", result, msgs)
     result, msg = self.must_be_not_none("add_realtime_price_if_missing", result, msgs)
-
 
     return result, msg

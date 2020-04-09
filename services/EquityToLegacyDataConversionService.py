@@ -20,6 +20,8 @@ class EquityToLegacyDataConversionService:
     if num_records is not None:
       df = df.iloc[-num_records:]
 
-    df = df.rename(columns={'close': 'Close Adj', 'closeunadj': 'Close', 'open': 'Open', 'high': 'High', 'low': 'Low', 'volume': 'Volume', 'date': 'Date'})
+    df = df.rename(columns={'date': 'Date', 'close': 'Adj Close', 'closeunadj': 'Close', 'open': 'Open', 'high': 'High', 'low': 'Low', 'volume': 'Volume'})
+    df = df.drop(columns=['ticker', 'lastupdated', 'dividends'])
+    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
 
     return df

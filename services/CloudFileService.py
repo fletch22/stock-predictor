@@ -6,9 +6,11 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from ipython_genutils.py3compat import xrange
 from pyspark import SparkContext, SparkFiles
+from itertools import zip_longest
 
 import config
 from config import logger_factory
+from services import file_services
 
 logger = logger_factory.create_logger(__name__)
 
@@ -59,29 +61,48 @@ class CloudFileService():
 
     return [ufi for ufi in upload_file_infos if ufi["destination_blob_name"] not in file_already_uploaded]
 
+  def sync_folders(self, local_source_path: str, remote_gcs_folder):
+    files = file_services.walk(local_source_path)
+
+    for f in files:
+      pass
+
+def grouper(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
+
 def get_spark_uploaders(upload_file_infos):
+  sublist_size = (len(upload_file_infos) // 20000) + 1
+  logger.info(f"Sublist size: {sublist_size}")
+  chunks = [upload_file_infos[x:x + sublist_size] for x in xrange(0, len(upload_file_infos), sublist_size)]
+
+  logger.info(f"Upload in {len(chunks)} chunks; each chunk size: {sublist_size}.")
+
+  smaller_chunks = grouper(chunks, 200)
   findspark.init()
   sc = SparkContext.getOrCreate()
   sc.setLogLevel("INFO")
   print(sc._jsc.sc().uiWebUrl().get())
+  for small_chunk in smaller_chunks:
+    filtered = [i for i in small_chunk if i]
 
-  sublist_size = (len(upload_file_infos) // 24) + 1
-  logger.info(f"Sublist size: {sublist_size}")
-  chunks = [upload_file_infos[x:x + sublist_size] for x in xrange(0, len(upload_file_infos), sublist_size)]
-  rdd = sc.parallelize(chunks)
+    rdd = sc.parallelize(filtered)
+    rdd.foreach(spark_gcs_upload)
 
-  rdd.foreach(spark_gcs_upload)
+    sc = SparkContext.getOrCreate()
+    sc.setLogLevel("INFO")
 
   sc.stop()
 
 def spark_gcs_upload(upload_file_infos):
   cloud_file_services = CloudFileService()
 
-  for file_info in upload_file_infos:
-    file_path = SparkFiles.get(file_info["source_file_path"])
-    destination_blob = file_info["destination_blob_name"]
+  if upload_file_infos is not None:
+    for file_info in upload_file_infos:
+      file_path = SparkFiles.get(file_info["source_file_path"])
+      destination_blob = file_info["destination_blob_name"]
 
-    upload_file_retry(cloud_file_services, file_path, destination_blob)
+      upload_file_retry(cloud_file_services, file_path, destination_blob)
 
 
 def upload_file_retry(cloud_file_services: CloudFileService, file_path, destination_blob):

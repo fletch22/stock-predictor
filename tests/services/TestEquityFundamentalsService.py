@@ -1,9 +1,10 @@
 import os
 from datetime import datetime
+from pathlib import Path
 from unittest import TestCase
 
 import config
-from config import logger_factory
+from config import logger_factory, constants
 from services.equities import equity_fundamentals_service
 
 logger = logger_factory.create_logger(__name__)
@@ -80,5 +81,12 @@ class TestEquityFundamentalsService(TestCase):
     # Assert
     assert(scaled_value == 1.0)
 
+  def test_combine_equity_fun(self):
+    # Arrange
+    print(constants.SHAR_CORE_FUNDAMENTALS_ARCHIVE)
+    output_path = Path(constants.QUANDL_TBLS_DIR, "shar_core_fundamentals_test.csv")
 
+    # Act
+    equity_fundamentals_service.combine_fundamentals(constants.SHAR_CORE_FUNDAMENTALS_ARCHIVE, output_path=output_path)
 
+    # Assert

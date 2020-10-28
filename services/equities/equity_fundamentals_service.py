@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Sequence, Dict
 
 import math
@@ -155,3 +156,15 @@ def create_min_maxer(fundy_infos: Sequence, package_path: str):
   list_min_maxer.persist(fundies)
 
   return list_min_maxer
+
+
+def combine_fundamentals(folder_path: Path, output_path: Path):
+  files = file_services.walk(dir=folder_path)
+
+  all_dfs = [pd.read_csv(f) for f in files]
+  df = pd.concat(all_dfs) \
+    .sort_values(by=["ticker","dimension","calendardate","datekey","reportperiod","lastupdated"]) \
+    .drop_duplicates(subset=["ticker","dimension","calendardate","datekey","reportperiod"], keep='last')
+
+  df.to_csv(output_path, index=False)
+

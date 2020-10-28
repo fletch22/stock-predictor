@@ -13,14 +13,16 @@ class TestStockDownloadService(TestCase):
 
   def test_download(self):
     # Arrange
-    expected_start_date_str = "2019-07-18"
-    expected_end_date_str = "2019-07-19"
+    expected_start_date_str = "2020-08-06"
+    expected_end_date_str = "2020-08-19"
     start_date = date_utils.parse_std_datestring(expected_start_date_str)
     end_date = date_utils.parse_std_datestring(expected_end_date_str)
 
     destination_path = os.path.join(config.constants.CACHE_DIR, "test_download_sep.csv")
     # Act
-    destination_path = stock_download_service.download_sep(start_date, end_date, destination_path=destination_path)
+    stock_download_service.download_sep(start_date, end_date, destination_path=destination_path)
+
+    print(f'Downloaded to : {str(destination_path)}')
 
     # Assert
     date_column_name = "date"

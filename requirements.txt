@@ -27,7 +27,7 @@ tensorflow-estimator==1.14.0
 termcolor==1.1.0
 msgpack==0.6.1
 wrapt==1.11.2
-tensorflow-gpu==1.14.0
+tensorflow-gpu==2.3.1
 pywin32==224
 wget==3.2
 quandl==3.4.8

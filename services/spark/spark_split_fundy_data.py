@@ -4,6 +4,8 @@ import findspark
 import math
 from ipython_genutils.py3compat import xrange
 from pyspark import SparkContext, SparkFiles
+
+from config.constants import NUM_SLICES_DEFAULT
 from services import file_services
 import pandas as pd
 from config import logger_factory
@@ -12,7 +14,7 @@ from services.equities.FullDataEquityFundamentalsService import FullDataEquityFu
 logger = logger_factory.create_logger(__name__)
 
 def use_spark_to_split(df_sorted: pd.DataFrame):
-  num_slices = 4
+  num_slices = NUM_SLICES_DEFAULT
   symbols_chunked = transform_symbols_to_spark_request(df_sorted, num_slices)
 
   do_spark(symbols_chunked, num_slices)

@@ -31,7 +31,7 @@ QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
 
 SHAR_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices")
 SHAR_DAILY = os.path.join(QUANDL_TBLS_DIR, "shar_daily.csv")
-SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2020-10-17.csv")
+SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2021-02-05.csv")
 SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_merged.csv")
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medlist.csv")
@@ -116,8 +116,11 @@ BET_HISTORY_DIR = os.path.join(APP_FIN_OUTPUT_DIR, APP_NAME, "bet")
 make_dir(BET_HISTORY_DIR)
 BET_HIST_CSV_PATH = os.path.join(BET_HISTORY_DIR, "bet_history.csv")
 
+WORKSPACE_PATH = Path(PROJECT_DIR).parent
+ALPHA_MEDIA_SIGNAL_PROJ = Path(WORKSPACE_PATH, "alpha_media_signal")
+NEWS_GESTALT_PROJ = Path(WORKSPACE_PATH, "news_gestalt")
 
-ALPHA_MEDIA_SIGNAL_PROJ = Path(Path(PROJECT_DIR).parent, "alpha_media_signal")
+NUM_SLICES_DEFAULT = 12
 
 
 

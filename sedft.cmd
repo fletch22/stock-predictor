@@ -1,4 +1,5 @@
 
 SET UNIQIFY_LOG_PATH=true
 
-python -m services.split_eod_data_to_files_service
+call "activate.bat" stock-predictor & cd %~dp0 & python -m services.split_eod_data_to_files_service
+

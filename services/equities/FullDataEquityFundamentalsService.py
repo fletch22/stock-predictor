@@ -42,7 +42,7 @@ class FullDataEquityFundamentalsService():
     # Do min max on list.
     # return as dictionary of fundamentals
 
-    symbol = self.prep_symboshals([symbol])[0]
+    symbol = self.prep_symbols([symbol])[0]
 
     df = self.df
 

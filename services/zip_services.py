@@ -60,6 +60,9 @@ def backup_project():
   source_dir_project = str(config.constants.ALPHA_MEDIA_SIGNAL_PROJ)
   backup_folder(source_dir_project, backup_dest_dirname, "alpha_media_signal")
 
+  source_dir_project = str(config.constants.NEWS_GESTALT_PROJ)
+  backup_folder(source_dir_project, backup_dest_dirname, "news_gestalt")
+
   stopWatch.stop()
   logger.info(f"Elapsed seconds: {stopWatch}")
 

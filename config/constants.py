@@ -31,7 +31,7 @@ QUANDL_TBLS_DIR = os.path.join(QUANDL_DIR, "tables")
 
 SHAR_EQUITY_PRICES_DIR = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices")
 SHAR_DAILY = os.path.join(QUANDL_TBLS_DIR, "shar_daily.csv")
-SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2021-02-05.csv")
+SHAR_EQUITY_PRICES = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_2021-04-01.csv")
 SHAR_EQUITY_PRICES_MERGED = os.path.join(SHAR_EQUITY_PRICES_DIR, "shar_equity_prices_merged.csv")
 SHAR_EQUITY_PRICES_SHORT = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_shortlist.csv")
 SHAR_EQUITY_PRICES_MED = os.path.join(QUANDL_TBLS_DIR, "shar_equity_prices_medlist.csv")
